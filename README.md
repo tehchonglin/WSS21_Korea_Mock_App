@@ -1,4 +1,4 @@
-# Welcome to my mock app in preparation for World Skills Singapore
+# Welcome to my Mock App in preparation for World Skills Singapore
 ## What is World Skills Singapore?
 World Skills Singapore (WSS) is a national skills competition that showcases the talents of young professionals in various vocational skills. The event aims to promote and celebrate excellence in skilled trades and technologies. Winners of the WSS may go on to represent Singapore in the WorldSkills Competition, a prestigious international event.
 
