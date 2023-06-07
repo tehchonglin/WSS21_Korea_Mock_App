@@ -169,8 +169,9 @@ fun BottomNavigationBar(
 @Composable
 fun EventsScreen() {
     Box(contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxSize()
-        .padding(0.dp,0.dp,0.dp,50.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(0.dp, 0.dp, 0.dp, 50.dp)
         ){
         val eventList = listOf(
             EventDetails("1",
@@ -291,13 +292,16 @@ fun EventsScreen() {
     }
 }
 
+
 @Composable
 fun TicketsScreen() {
     Box(modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center){
-        Text(text = "Tickets Screen")
+        Text(text = "Records Screen")
     }
 }
+
+
 @Composable
 fun RecordsScreen() {
     Box(modifier = Modifier.fillMaxSize(),
