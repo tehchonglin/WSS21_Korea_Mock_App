@@ -1,7 +1,9 @@
 package com.example.wss_mock_app
 
 import androidx.compose.ui.graphics.painter.Painter
-
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.Calendar
 
 data class EventDetails(
     val id: String,
@@ -13,10 +15,22 @@ data class EventDetails(
     val Pictures: List<Painter>
 )
 
-data class TicketDetails(
-    val id: String,
+@Entity(tableName = "opening_ticket_details")
+data class OpeningTicketDetails(
     val Name: String,
-    val Picture: Painter,
-    val Type: String,
+    val Picture: ByteArray,
+    val Date: String,
+    val Seat: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0
+)
 
+@Entity(tableName = "closing_ticket_details")
+data class ClosingTicketDetails(
+    val Name: String,
+    val Picture: ByteArray,
+    val Date: String,
+    val Seat: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0
 )

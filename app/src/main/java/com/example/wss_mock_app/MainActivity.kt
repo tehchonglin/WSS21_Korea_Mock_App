@@ -6,14 +6,17 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +31,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -37,19 +41,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -58,15 +68,36 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.room.Room
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            TicketDatabase::class.java,
+            "ticket_details.db"
+        ).build()
+    }
+
+    private val viewModel by viewModels<TicketViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return TicketViewModel(db.dao) as T
+                }
+            }
+        }
+    )
     @OptIn(ExperimentalMaterial3Api::class)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             WSS_Mock_AppTheme {
+                val opening_state by viewModel.opening_state.collectAsState()
+                val closing_state by viewModel.closing_state.collectAsState()
                 val navController = rememberNavController()
                 Scaffold (
                     bottomBar = {
@@ -93,7 +124,7 @@ class MainActivity : ComponentActivity() {
                             })
                     }
                         ){
-                    Navigation(navController = navController)
+                    Navigation(navController = navController, closing_state, opening_state, viewModel::onEvent)
                 }
             }
         }
@@ -101,13 +132,16 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Navigation(navController: NavHostController) {
+fun Navigation(navController: NavHostController,
+               closing_state: ClosingTicketState,
+               opening_state: OpeningTicketState,
+               onEvent: (TicketEvent) -> Unit) {
         NavHost(navController = navController, startDestination = "Events"){
         composable("Events"){
             EventsScreen()
         }
         composable("Tickets"){
-            TicketsScreen()
+            TicketsScreen(closing_state,opening_state,onEvent)
         }
         composable("Records"){
             RecordsScreen()
@@ -294,10 +328,61 @@ fun EventsScreen() {
 
 
 @Composable
-fun TicketsScreen() {
-    Box(modifier = Modifier.fillMaxSize(),
+fun TicketsScreen(
+    closing_state: ClosingTicketState,
+    opening_state: OpeningTicketState,
+    onEvent: (TicketEvent) -> Unit
+) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(0.dp, 0.dp, 0.dp, 50.dp),
         contentAlignment = Alignment.Center){
-        Text(text = "Records Screen")
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(text = "Opening Ceremony Tickets",
+                fontSize = 30.sp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ){
+                items(opening_state.tickets) {tickets ->
+                    Row (modifier = Modifier.fillMaxWidth()){
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = tickets.Name,
+                                fontSize = 20.sp,
+                                textAlign = TextAlign.Start,
+                                fontWeight = FontWeight.Bold)
+                            Text(text = tickets.Seat,
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.End)
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier
+                .height(20.dp)
+                .fillMaxWidth())
+            Text(text = "Closing Ceremony Tickets",
+                fontSize = 30.sp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ){
+                items(closing_state.tickets) {tickets ->
+                    Row (modifier = Modifier.fillMaxWidth()){
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = tickets.Name,
+                                fontSize = 20.sp,
+                                textAlign = TextAlign.Start,
+                                fontWeight = FontWeight.Bold)
+                            Text(text = tickets.Seat,
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.End)
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
