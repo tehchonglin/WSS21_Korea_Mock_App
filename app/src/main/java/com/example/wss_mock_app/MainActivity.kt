@@ -306,12 +306,12 @@ fun EventsScreen() {
             ),
         )
         val navController = rememberNavController()
-        NavHost(navController, startDestination = Screen.EventsList.route) {
-            composable(Screen.EventsList.route) {
+        NavHost(navController, startDestination = EventsScreen.EventsList.route) {
+            composable(EventsScreen.EventsList.route) {
                 EventsList(navController,eventList)
             }
             composable(
-                Screen.Details.route,
+                EventsScreen.Details.route,
                 arguments = listOf(navArgument("eventId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getString("eventId")
@@ -337,6 +337,10 @@ fun TicketsScreen(
         .fillMaxSize()
         .padding(0.dp, 0.dp, 0.dp, 50.dp),
         contentAlignment = Alignment.Center){
+        val navController = rememberNavController()
+        NavHost(navController, startDestination = TicketsScreen.TicketList.route){
+            TODO()
+        }
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(text = "Opening Ceremony Tickets",
                 fontSize = 30.sp)

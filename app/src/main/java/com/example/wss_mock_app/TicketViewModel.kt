@@ -13,7 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 
-class TicketViewModel (
+class TicketViewModel  (
     private val dao: TicketDao
     ): ViewModel(){
 

@@ -54,14 +54,14 @@ fun EventsList(navController: NavController,
                 .fillMaxWidth()
         )
         EventsCard(events = events, onClick = { event ->
-            navController.navigate(Screen.Details.route.replace("{eventId}", event.id))
+            navController.navigate(EventsScreen.Details.route.replace("{eventId}", event.id))
         })
     }
 }
 
-sealed class Screen(val route: String) {
-    object EventsList : Screen("events_list")
-    object Details : Screen("details/{eventId}")
+sealed class EventsScreen(val route: String) {
+    object EventsList : EventsScreen("events_list")
+    object Details : EventsScreen("details/{eventId}")
 }
 
 fun findEventById(eventId: String?,
