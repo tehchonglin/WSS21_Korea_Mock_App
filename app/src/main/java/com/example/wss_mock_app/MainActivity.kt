@@ -338,55 +338,9 @@ fun TicketsScreen(
         .padding(0.dp, 0.dp, 0.dp, 50.dp),
         contentAlignment = Alignment.Center){
         val navController = rememberNavController()
-        NavHost(navController, startDestination = TicketsScreen.TicketList.route){
+        NavHost(navController, startDestination = TicketsScreen.TicketList.route) {
             TODO()
         }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Opening Ceremony Tickets",
-                fontSize = 30.sp)
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ){
-                items(opening_state.tickets) {tickets ->
-                    Row (modifier = Modifier.fillMaxWidth()){
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = tickets.Name,
-                                fontSize = 20.sp,
-                                textAlign = TextAlign.Start,
-                                fontWeight = FontWeight.Bold)
-                            Text(text = tickets.Seat,
-                                fontSize = 15.sp,
-                                textAlign = TextAlign.End)
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier
-                .height(20.dp)
-                .fillMaxWidth())
-            Text(text = "Closing Ceremony Tickets",
-                fontSize = 30.sp)
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ){
-                items(closing_state.tickets) {tickets ->
-                    Row (modifier = Modifier.fillMaxWidth()){
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = tickets.Name,
-                                fontSize = 20.sp,
-                                textAlign = TextAlign.Start,
-                                fontWeight = FontWeight.Bold)
-                            Text(text = tickets.Seat,
-                                fontSize = 15.sp,
-                                textAlign = TextAlign.End)
-                        }
-                    }
-                }
-            }
-        }
-
     }
 }
 
