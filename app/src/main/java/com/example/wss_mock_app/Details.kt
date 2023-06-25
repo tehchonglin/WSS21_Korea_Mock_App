@@ -15,22 +15,14 @@ data class EventDetails(
     val Pictures: List<Painter>
 )
 
-@Entity(tableName = "opening_ticket_details")
-data class OpeningTicketDetails(
+@Entity (tableName = "ticket_details")
+data class TicketDetails(
+    val ticketType: String,
     val Name: String,
     val Picture: ByteArray,
-    val Date: String,
+    val Time: String,
     val Seat: String,
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0
-)
-
-@Entity(tableName = "closing_ticket_details")
-data class ClosingTicketDetails(
-    val Name: String,
-    val Picture: ByteArray,
-    val Date: String,
-    val Seat: String,
+    val order_id: Int,
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0
 )

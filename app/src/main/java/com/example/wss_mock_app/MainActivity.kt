@@ -72,15 +72,13 @@ import androidx.room.Room
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 
 class MainActivity : ComponentActivity() {
-
     private val db by lazy {
         Room.databaseBuilder(
             applicationContext,
             TicketDatabase::class.java,
-            "ticket_details.db"
+            "tickets.db"
         ).build()
     }
-
     private val viewModel by viewModels<TicketViewModel>(
         factoryProducer = {
             object : ViewModelProvider.Factory {
@@ -96,8 +94,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WSS_Mock_AppTheme {
-                val opening_state by viewModel.opening_state.collectAsState()
-                val closing_state by viewModel.closing_state.collectAsState()
+                val state by viewModel.state.collectAsState()
                 val navController = rememberNavController()
                 Scaffold (
                     bottomBar = {
@@ -124,7 +121,7 @@ class MainActivity : ComponentActivity() {
                             })
                     }
                         ){
-                    Navigation(navController = navController, closing_state, opening_state, viewModel::onEvent)
+                    Navigation(navController = navController, state, viewModel::onEvent)
                 }
             }
         }
@@ -133,15 +130,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Navigation(navController: NavHostController,
-               closing_state: ClosingTicketState,
-               opening_state: OpeningTicketState,
-               onEvent: (TicketEvent) -> Unit) {
+    ticketState: TicketState,
+   onEvent: (TicketEvent) -> Unit) {
         NavHost(navController = navController, startDestination = "Events"){
         composable("Events"){
             EventsScreen()
         }
         composable("Tickets"){
-            TicketsScreen(closing_state,opening_state,onEvent)
+            TicketsScreen(ticketState, onEvent)
         }
         composable("Records"){
             RecordsScreen()
@@ -328,18 +324,18 @@ fun EventsScreen() {
 
 
 @Composable
-fun TicketsScreen(
-    closing_state: ClosingTicketState,
-    opening_state: OpeningTicketState,
-    onEvent: (TicketEvent) -> Unit
-) {
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .padding(0.dp, 0.dp, 0.dp, 50.dp),
+fun TicketsScreen(ticketState: TicketState,
+    onEvent: (TicketEvent) -> Unit){
+    Box(modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center){
         val navController = rememberNavController()
-        NavHost(navController, startDestination = TicketsScreen.TicketList.route) {
-            TODO()
+        NavHost(navController = navController, startDestination = "ticketList" ){
+            composable("ticketList"){
+                TicketsList(navController = navController, onEvent = onEvent, ticketState = ticketState)
+            }
+            composable("ticketDetails"){
+                CreateTicketScreen(navController)
+            }
         }
     }
 }

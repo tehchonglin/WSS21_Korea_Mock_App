@@ -17,47 +17,35 @@ import java.util.Date
 @Dao
 interface TicketDao{
     @Upsert
-    suspend fun upsertOpeningTicket(ticketDetails: OpeningTicketDetails)
-
-    @Upsert
-    suspend fun upsertClosingTicket(ticketDetails: ClosingTicketDetails)
+    suspend fun upsertTicket(ticketDetails: TicketDetails)
 
     @Delete
-    suspend fun deleteOpeningTicket(ticketDetails: OpeningTicketDetails)
+    suspend fun deleteTicket(ticketDetails: TicketDetails)
 
-    @Delete
-    suspend fun deleteClosingTicket(ticketDetails: ClosingTicketDetails)
+    @Query("SELECT * FROM ticket_details WHERE ticketType = 'closing' ORDER BY id ASC")
+    fun getClosingTicketsOrderedByID(): Flow<List<TicketDetails>>
 
-    @Query("SELECT * FROM closing_ticket_details ORDER BY id ASC")
-    fun getClosingTicketsOrderedByID(): Flow<List<ClosingTicketDetails>>
+    @Query("SELECT * FROM ticket_details WHERE ticketType = 'opening' ORDER BY id ASC")
+    fun getOpeningTicketsOrderedByID(): Flow<List<TicketDetails>>
 
-    @Query("SELECT * FROM opening_ticket_details ORDER BY id ASC")
-    fun getOpeningTicketsOrderedByID(): Flow<List<OpeningTicketDetails>>
+    @Query("UPDATE ticket_details SET order_id = :newOrderIndex WHERE id = :ticketId")
+    fun updateOrderIndex(ticketId: Int, newOrderIndex: Int)
 }
 
 sealed interface TicketEvent {
-    object SaveOpeningTicket: TicketEvent
-    object SaveClosingTicket: TicketEvent
+    object SaveTicket: TicketEvent
     data class SetName(val Name: String): TicketEvent
-    data class SetSeat(val Seat: String): TicketEvent
-    data class DeleteClosingTickets(val ticketDetails: ClosingTicketDetails): TicketEvent
-    data class DeleteOpeningTickets(val ticketDetails: OpeningTicketDetails): TicketEvent
-    data class SortOpeningTickets(val ticketDetails: OpeningTicketDetails): TicketEvent
-    data class SortClosingTickets(val ticketDetails: ClosingTicketDetails): TicketEvent
+    object ShowDialog: TicketEvent
+    object HideDialog: TicketEvent
+    data class SortTickets(val sortType: String): TicketEvent
+    data class DeleteTickets(val ticketDetails: TicketDetails): TicketEvent
 }
 
-data class OpeningTicketState(
-    val tickets: List<OpeningTicketDetails> = emptyList(),
+data class TicketState(
+    val tickets: List<TicketDetails> = emptyList(),
+    val ticketType: String = "",
     val Name: String = "",
     val Picture: ByteArray? = null,
-    val Date: Calendar = Calendar.getInstance(),
-    val Seat: String = ""
-)
-
-data class ClosingTicketState(
-    val tickets: List<ClosingTicketDetails> = emptyList(),
-    val Name: String = "",
-    val Picture: ByteArray? = null,
-    val Date: Calendar = Calendar.getInstance(),
+    val Time: String = "",
     val Seat: String = ""
 )
