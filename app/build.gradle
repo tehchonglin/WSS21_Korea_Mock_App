@@ -79,7 +79,6 @@ dependencies {
     // For Room
     implementation "androidx.room:room-runtime:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
-    // Optional - Kotlin Extensions and Coroutines support for Room
     implementation "androidx.room:room-ktx:$room_version"
 
     def coroutine_version = "1.7.1"

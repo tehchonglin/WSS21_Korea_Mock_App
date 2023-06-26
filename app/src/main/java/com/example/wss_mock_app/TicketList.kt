@@ -105,6 +105,7 @@ fun TicketsList(navController: NavController,
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTicketScreen(navController: NavController) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -129,23 +130,24 @@ fun CreateTicketScreen(navController: NavController) {
             ) {
                 Text("Select ticket ceremony type")
             }
-//            DropdownMenu(
-//                expanded = showMenu.value,
-//                onDismissRequest = { showMenu.value = false }
-//            ) {
-//                DropdownMenuItem(onClick = {
-//                    selectedTicketType.value = "opening"
-//                    showMenu.value = false
-//                }) {
-//                    Text(text = "Opening Ceremony")
-//                }
-//                DropdownMenuItem(onClick = {
-//                    selectedTicketType.value = "closing"
-//                    showMenu.value = false
-//                }) {
-//                    Text(text = "Closing Ceremony")
-//                }
-//            }
+            DropdownMenu(
+                expanded = showMenu.value,
+                onDismissRequest = { showMenu.value = false }
+            ) {
+                DropdownMenuItem(text = {
+                    Text(text = "Opening Ceremony") },
+                    onClick = {
+                        selectedTicketType.value = "opening"
+                        showMenu.value = false
+                    })
+                DropdownMenuItem( text = {
+                    Text(text = "Closing ceremony")
+                    },
+                    onClick = {
+                    selectedTicketType.value = "closing"
+                    showMenu.value = false
+                })
+            }
         }
         var text by remember { mutableStateOf(TextFieldValue("")) }
         TextField(
