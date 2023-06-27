@@ -1,8 +1,14 @@
 package com.example.wss_mock_app
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +26,9 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -57,6 +65,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.toSize
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import org.jetbrains.annotations.Async
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,46 +119,66 @@ fun TicketsList(navController: NavController,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTicketScreen(navController: NavController) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    var showMenu by remember { mutableStateOf(false) }
+    var selectedTicketType by remember { mutableStateOf("") }
+    var textFieldSize by remember { mutableStateOf(Size.Zero)}
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())) {
         Text(
             text = "Tickets Create",
             fontSize = 35.sp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(0.dp, 40.dp, 0.dp, 70.dp),
+                .padding(0.dp, 20.dp, 0.dp, 35.dp),
             textAlign = TextAlign.Center
         )
-        val showMenu = remember { mutableStateOf(false) }
-        val selectedTicketType = remember { mutableStateOf("") }
-        Box {
-            Button(
-                onClick = { showMenu.value = !showMenu.value },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .padding(40.dp, 0.dp, 40.dp, 5.dp),
-                shape = RectangleShape
-            ) {
-                Text("Select ticket ceremony type")
-            }
-            DropdownMenu(
-                expanded = showMenu.value,
-                onDismissRequest = { showMenu.value = false }
-            ) {
-                DropdownMenuItem(text = {
-                    Text(text = "Opening Ceremony") },
-                    onClick = {
-                        selectedTicketType.value = "opening"
-                        showMenu.value = false
-                    })
-                DropdownMenuItem( text = {
-                    Text(text = "Closing ceremony")
-                    },
-                    onClick = {
-                    selectedTicketType.value = "closing"
-                    showMenu.value = false
+        // Up Icon when expanded and down icon when collapsed
+        val icon = if (showMenu)
+            Icons.Filled.KeyboardArrowUp
+        else
+            Icons.Filled.KeyboardArrowDown
+        val ticketTypeString = if (selectedTicketType.equals("opening"))
+            "Opening Ceremony"
+        else
+            "Closing Ceremony"
+        OutlinedTextField(
+            value = selectedTicketType,
+            onValueChange = { selectedTicketType = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { coordinates ->
+                    // This value is used to assign to
+                    // the DropDown the same width
+                    textFieldSize = coordinates.size.toSize()
+                }
+                .padding(40.dp, 0.dp, 40.dp, 5.dp),
+            label = {Text("Select ticket ceremony type")},
+            trailingIcon = {
+                Icon(icon,"contentDescription",
+                    Modifier.clickable { showMenu = !showMenu })
+            },
+            shape = RectangleShape
+        )
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            modifier = Modifier
+                .width(with(LocalDensity.current){textFieldSize.width.toDp()}, )
+        ) {
+            DropdownMenuItem(text = {
+                Text(text = "Opening Ceremony") },
+                onClick = {
+                    selectedTicketType = "opening"
+                    showMenu = false
                 })
-            }
+            DropdownMenuItem( text = {
+                Text(text = "Closing ceremony")
+                },
+                onClick = {
+                selectedTicketType = "closing"
+                showMenu = false
+            })
         }
         var text by remember { mutableStateOf(TextFieldValue("")) }
         TextField(
@@ -163,9 +194,16 @@ fun CreateTicketScreen(navController: NavController) {
                 .padding(40.dp, 0.dp, 40.dp, 5.dp),
             shape = RectangleShape
         )
-        val imagePainter = remember { mutableStateOf<Painter?>(null) }
+        var imageUri by remember { mutableStateOf<Uri?>(null) }
+        val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia(),
+            onResult = {uri -> imageUri = uri}
+        )
         Button(
-            onClick = { TODO()
+            onClick = {
+                singlePhotoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Cyan,
@@ -179,21 +217,40 @@ fun CreateTicketScreen(navController: NavController) {
         ) {
             Text(text = "Choose one picture")
         }
-        if (imagePainter.value != null) {
-            Image(
-                painter = imagePainter.value!!,
+        if (imageUri != null) {
+            AsyncImage(
+                model = imageUri,
                 contentDescription = "User selected image",
                 modifier = Modifier
-                    .size(200.dp)
-                    .background(Color.LightGray),
+                    .size(310.dp)
+                    .background(Color.LightGray)
+                    .align(Alignment.CenterHorizontally),
                 contentScale = ContentScale.Crop
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(325.dp)
                     .background(Color.Gray)
+                    .align(Alignment.CenterHorizontally)
             )
+        }
+        Button(onClick = {
+                         TODO( "add the data into the database")
+        },
+            shape = RectangleShape,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally)
+                .padding(40.dp, 50.dp, 40.dp, 5.dp)
+                .size(310.dp, 60.dp)
+                .border(1.dp, Color.Black),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Yellow,
+            contentColor = Color.Black
+        )) {
+            Text(text = "Create",
+            fontSize = 20.sp)
         }
     }
 }
@@ -242,4 +299,12 @@ fun ColumnScope.ClosingTickets(onEvent: (TicketEvent) -> Unit,
             }
         }
     }
+}
+
+@Composable
+@FontScalePreview
+@DevicePreview
+fun CreateTicketScreenPreview() {
+    val navController = rememberNavController()
+    CreateTicketScreen(navController = navController)
 }

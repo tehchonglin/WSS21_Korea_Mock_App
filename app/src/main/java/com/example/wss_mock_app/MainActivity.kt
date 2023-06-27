@@ -326,7 +326,8 @@ fun EventsScreen() {
 @Composable
 fun TicketsScreen(ticketState: TicketState,
     onEvent: (TicketEvent) -> Unit){
-    Box(modifier = Modifier.fillMaxSize(),
+    Box(modifier = Modifier.fillMaxSize()
+        .padding(0.dp,0.dp,0.dp,80.dp),
         contentAlignment = Alignment.Center){
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "ticketList" ){
