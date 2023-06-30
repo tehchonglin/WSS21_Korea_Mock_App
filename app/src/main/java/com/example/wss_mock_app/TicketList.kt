@@ -1,5 +1,6 @@
 package com.example.wss_mock_app
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -41,6 +42,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults.contentColor
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -67,6 +73,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.ticker
+import kotlinx.coroutines.launch
 import org.jetbrains.annotations.Async
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,12 +125,19 @@ fun TicketsList(navController: NavController,
 }
 
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTicketScreen(navController: NavController) {
     var showMenu by remember { mutableStateOf(false) }
     var selectedTicketType by remember { mutableStateOf("") }
     var textFieldSize by remember { mutableStateOf(Size.Zero)}
+    var ticketTypeString by remember { mutableStateOf("")}
+    var allowCreate by remember { mutableStateOf(false)}
+    val snackbarHostState = remember { SnackbarHostState()}
+    var setShowSnackBar by remember { mutableStateOf(false)}
+    var showSnackBar by remember { mutableStateOf(false)}
+    val scope = rememberCoroutineScope()
         Column(modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())) {
@@ -138,53 +154,55 @@ fun CreateTicketScreen(navController: NavController) {
             Icons.Filled.KeyboardArrowUp
         else
             Icons.Filled.KeyboardArrowDown
-        val ticketTypeString = if (selectedTicketType.equals("opening"))
-            "Opening Ceremony"
-        else
-            "Closing Ceremony"
-        OutlinedTextField(
-            value = selectedTicketType,
-            onValueChange = { selectedTicketType = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { coordinates ->
-                    // This value is used to assign to
-                    // the DropDown the same width
-                    textFieldSize = coordinates.size.toSize()
-                }
-                .padding(40.dp, 0.dp, 40.dp, 5.dp),
-            label = {Text("Select ticket ceremony type")},
-            trailingIcon = {
-                Icon(icon,"contentDescription",
-                    Modifier.clickable { showMenu = !showMenu })
-            },
-            shape = RectangleShape
-        )
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false },
-            modifier = Modifier
-                .width(with(LocalDensity.current){textFieldSize.width.toDp()}, )
-        ) {
-            DropdownMenuItem(text = {
-                Text(text = "Opening Ceremony") },
-                onClick = {
-                    selectedTicketType = "opening"
-                    showMenu = false
-                })
-            DropdownMenuItem( text = {
-                Text(text = "Closing ceremony")
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .padding(40.dp, 0.dp, 40.dp, 5.dp)
+            .align(Alignment.CenterHorizontally)){
+            OutlinedTextField(
+                value = ticketTypeString,
+                onValueChange = { ticketTypeString = it },
+                modifier = Modifier
+                    .onGloballyPositioned { coordinates ->
+                        // This value is used to assign to the DropDown the same width
+                        textFieldSize = coordinates.size.toSize()
+                    }
+                    .fillMaxWidth(),
+                label = {Text("Select ticket ceremony type")},
+                trailingIcon = {
+                    Icon(icon,"contentDescription",
+                        Modifier.clickable { showMenu = !showMenu })
                 },
-                onClick = {
-                selectedTicketType = "closing"
-                showMenu = false
-            })
+                shape = RectangleShape,
+                readOnly = true
+            )
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+                modifier = Modifier
+                    .width(with(LocalDensity.current){textFieldSize.width.toDp()})
+            ) {
+                DropdownMenuItem(text = {
+                    Text(text = "Opening Ceremony") },
+                    onClick = {
+                        selectedTicketType = "opening"
+                        ticketTypeString = "Opening ceremony"
+                        showMenu = false
+                    })
+                DropdownMenuItem( text = {
+                    Text(text = "Closing ceremony")
+                },
+                    onClick = {
+                        selectedTicketType = "closing"
+                        ticketTypeString = "Closing ceremony"
+                        showMenu = false
+                    })
+            }
         }
-        var text by remember { mutableStateOf(TextFieldValue("")) }
+        var userName by remember { mutableStateOf(TextFieldValue("")) }
         TextField(
-            value = text,
+            value = userName,
             onValueChange = {
-                text = it
+                userName = it
             },
             label = { Text(text = "Name") },
             placeholder = { Text(text = "Input your name") },
@@ -222,7 +240,8 @@ fun CreateTicketScreen(navController: NavController) {
                 model = imageUri,
                 contentDescription = "User selected image",
                 modifier = Modifier
-                    .size(310.dp)
+                    .width(330.dp)
+                    .height(150.dp)
                     .background(Color.LightGray)
                     .align(Alignment.CenterHorizontally),
                 contentScale = ContentScale.Crop
@@ -230,13 +249,32 @@ fun CreateTicketScreen(navController: NavController) {
         } else {
             Box(
                 modifier = Modifier
-                    .size(325.dp)
+                    .width(330.dp)
+                    .height(150.dp)
                     .background(Color.Gray)
                     .align(Alignment.CenterHorizontally)
             )
         }
+        allowCreate = imageUri != null && selectedTicketType != "" &&  !userName.equals("")
+            if (showSnackBar){
+                LaunchedEffect(snackbarHostState) {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Error message",
+                        actionLabel = "Retry message"
+                    )
+                    when (result) {
+                        SnackbarResult.Dismissed -> {
+                            setShowSnackBar = false
+                        }
+                        SnackbarResult.ActionPerformed -> {
+                            setShowSnackBar = false
+                            // perform action here
+                        }
+                    }
+                }
+            }
         Button(onClick = {
-                         TODO( "add the data into the database")
+             showSnackBar = true
         },
             shape = RectangleShape,
             modifier = Modifier
@@ -252,6 +290,10 @@ fun CreateTicketScreen(navController: NavController) {
             Text(text = "Create",
             fontSize = 20.sp)
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
     }
 }
 
