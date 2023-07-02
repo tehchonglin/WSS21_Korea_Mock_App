@@ -1,6 +1,7 @@
 package com.example.wss_mock_app
 
 import android.graphics.drawable.PaintDrawable
+import android.net.Uri
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +36,8 @@ interface TicketDao{
 sealed interface TicketEvent {
     object SaveTicket: TicketEvent
     data class SetName(val Name: String): TicketEvent
+    data class SetPicture(val Picture: Uri): TicketEvent
+    data class SetTicketType(val ticketType: String): TicketEvent
     object ShowDialog: TicketEvent
     object HideDialog: TicketEvent
     data class SortTickets(val sortType: String): TicketEvent
@@ -45,7 +48,5 @@ data class TicketState(
     val tickets: List<TicketDetails> = emptyList(),
     val ticketType: String = "",
     val Name: String = "",
-    val Picture: ByteArray? = null,
-    val Time: String = "",
-    val Seat: String = ""
+    val Picture: String = ""
 )

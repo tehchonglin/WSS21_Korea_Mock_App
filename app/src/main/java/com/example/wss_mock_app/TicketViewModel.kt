@@ -1,6 +1,7 @@
 package com.example.wss_mock_app
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,7 +21,7 @@ import java.util.Date
 class TicketViewModel  (
     private val dao: TicketDao
     ): ViewModel(){
-    private val _sortType = MutableStateFlow("opening")
+    private val _sortType = MutableStateFlow("")
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _tickets = _sortType
         .flatMapLatest { sortType ->
@@ -49,7 +50,32 @@ class TicketViewModel  (
                 }
             }
             TicketEvent.HideDialog -> TODO()
-            TicketEvent.SaveTicket -> TODO()
+            TicketEvent.SaveTicket -> {
+                val name = _state.value.Name
+                val picture = _state.value.Picture
+                val type = _state.value.ticketType
+
+                if(name.isBlank() || picture.isBlank() || type.isBlank()) {
+                    return
+                }
+
+                val ticket = TicketDetails(
+                    type,
+                    name,
+                    picture,
+                    generateDate(),
+                    generateSeat(),
+                    0
+                )
+                viewModelScope.launch {
+                    dao.upsertTicket(ticket)
+                }
+                _state.update { it.copy(
+                    Name = "",
+                    Picture = "",
+                    ticketType = ""
+                ) }
+            }
             is TicketEvent.SetName ->{
                 viewModelScope.launch {
                     _state.update { it.copy(
@@ -60,6 +86,22 @@ class TicketViewModel  (
             TicketEvent.ShowDialog -> TODO()
             is TicketEvent.SortTickets -> {
                 _sortType.value = event.sortType
+            }
+
+            is TicketEvent.SetPicture -> {
+                viewModelScope.launch {
+                    val uriString = event.Picture.toString()
+                    _state.update { it.copy(
+                        Picture = uriString
+                    ) }
+                }
+            }
+            is TicketEvent.SetTicketType -> {
+                viewModelScope.launch {
+                    _state.update { it.copy(
+                        ticketType = event.ticketType
+                    ) }
+                }
             }
         }
     }
