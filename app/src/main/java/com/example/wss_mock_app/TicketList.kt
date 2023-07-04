@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,48 +88,53 @@ import kotlin.reflect.KClass
 @Composable
 fun TicketsList(navController: NavController,
     onEvent: (TicketEvent) -> Unit,
-    ticketState: TicketState) {
-    Column(
+    stateOpening: TicketState,
+    stateClosing: TicketState) {
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        Text(text = "Tickets List",
-            fontSize = 35.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(0.dp, 40.dp, 0.dp, 30.dp),
-            textAlign = TextAlign.Center)
-        Button(onClick = {
-            navController.navigate("ticketDetails")
-        },
-            modifier = Modifier
-                .padding(0.dp, 0.dp, 0.dp, 40.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Yellow,
-                contentColor = Color.Black
-            ), contentPadding = PaddingValues(10.dp),
-            shape = RoundedCornerShape(10.dp)) {
-            Spacer(modifier = Modifier.width(40.dp))
-            Text(text = "Create a new ticket",
-                fontSize = 20.sp,
+        item {
+            Text(text = "Tickets List",
+                fontSize = 35.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 40.dp, 0.dp, 30.dp),
                 textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.width(40.dp))
+            Button(onClick = {
+                navController.navigate("ticketDetails")
+            },
+                modifier = Modifier
+                    .padding(0.dp, 0.dp, 0.dp, 40.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Yellow,
+                    contentColor = Color.Black
+                ), contentPadding = PaddingValues(10.dp),
+                shape = RoundedCornerShape(10.dp)) {
+                Spacer(modifier = Modifier.width(40.dp))
+                Text(text = "Create a new ticket",
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.width(40.dp))
+            }
+            Text(text = "Opening Ceremony Tickets",
+                fontSize = 20.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 20.dp),
+                textAlign = TextAlign.Center)
         }
-        Text(text = "Opening Ceremony Tickets",
-            fontSize = 20.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(0.dp, 20.dp),
-            textAlign = TextAlign.Center)
-        OpeningTickets(onEvent = onEvent, ticketState = ticketState)
-        Text(text = "Closing Ceremony Tickets",
-            fontSize = 20.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(0.dp, 20.dp),
-            textAlign = TextAlign.Center)
-        ClosingTickets(onEvent, ticketState)
+        openingTickets(onEvent = onEvent, ticketState = stateOpening)
+        item {
+            Text(text = "Closing Ceremony Tickets",
+                fontSize = 20.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 20.dp),
+                textAlign = TextAlign.Center)
+        }
+        closingTickets(onEvent, stateClosing)
     }
 }
 
@@ -292,15 +298,8 @@ fun CreateTicketScreen(
     }
 }
 
-@Composable
-fun ColumnScope.OpeningTickets(onEvent: (TicketEvent) -> Unit,
+fun LazyListScope.openingTickets(onEvent: (TicketEvent) -> Unit,
                                ticketState: TicketState){
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
         onEvent(TicketEvent.SortTickets("opening"))
         items(ticketState.tickets) { opening_ticket ->
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -334,16 +333,8 @@ fun ColumnScope.OpeningTickets(onEvent: (TicketEvent) -> Unit,
             }
         }
     }
-}
-@Composable
-fun ColumnScope.ClosingTickets(onEvent: (TicketEvent) -> Unit,
+fun LazyListScope.closingTickets(onEvent: (TicketEvent) -> Unit,
     ticketState: TicketState){
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
         onEvent(TicketEvent.SortTickets("closing"))
         items(ticketState.tickets) { closing_ticket ->
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -377,7 +368,6 @@ fun ColumnScope.ClosingTickets(onEvent: (TicketEvent) -> Unit,
             }
         }
     }
-}
 
 @Composable
 @FontScalePreview
@@ -393,6 +383,6 @@ fun CreateTicketScreenPreview() {
 fun TicketsListScreenPreview() {
     val navController = rememberNavController()
     val ticketState = TicketState()
-    TicketsList(navController = navController, onEvent = {}, ticketState = ticketState)
+    TicketsList(navController = navController, onEvent = {}, ticketState, ticketState)
 }
 

@@ -42,6 +42,45 @@ class TicketViewModel  (
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
+    // Sort state for tickets opening
+    private val _sortTypeOpening = MutableStateFlow("opening")
+
+    // Tickets state for opening sort
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _ticketsOpeningSort = _sortTypeOpening.flatMapLatest { sortType ->
+        when(sortType) {
+            "opening" -> dao.getOpeningTicketsOrderedByID()
+            else -> {
+                dao.getOpeningTicketsOrderedByID()
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+    // Sort state for tickets closing
+    private val _sortTypeClosing = MutableStateFlow("closing")
+
+    // Tickets state for closing sort
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _ticketsClosingSort = _sortTypeClosing.flatMapLatest { sortType ->
+        when(sortType) {
+            "closing" -> dao.getClosingTicketsOrderedByID()
+            else -> {
+                dao.getClosingTicketsOrderedByID()
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+    private val _stateOpening = MutableStateFlow(TicketState())
+    private val _stateClosing = MutableStateFlow(TicketState())
+
+    val stateOpening = combine(_stateOpening, _sortTypeOpening, _ticketsOpeningSort) { state, sortType, tickets ->
+        state.copy(tickets = tickets, ticketType = sortType)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
+
+    val stateClosing = combine(_stateClosing, _sortTypeClosing, _ticketsClosingSort) { state, sortType, tickets ->
+        state.copy(tickets = tickets, ticketType = sortType)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
+
     fun onEvent(event: TicketEvent) {
         when(event){
             is TicketEvent.DeleteTickets -> {
@@ -85,7 +124,12 @@ class TicketViewModel  (
             }
             TicketEvent.ShowDialog -> TODO()
             is TicketEvent.SortTickets -> {
-                _sortType.value = event.sortType
+                if(event.sortType == "opening") {
+                    _sortTypeOpening.value = event.sortType
+                }
+                else {
+                    _sortTypeClosing.value = event.sortType
+                }
             }
 
             is TicketEvent.SetPicture -> {
