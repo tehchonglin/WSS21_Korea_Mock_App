@@ -86,53 +86,65 @@ import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TicketsList(navController: NavController,
+fun TicketsList(
+    navController: NavController,
     onEvent: (TicketEvent) -> Unit,
     stateOpening: TicketState,
-    stateClosing: TicketState) {
+    stateClosing: TicketState
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
-    ){
+    ) {
         item {
-            Text(text = "Tickets List",
+            Text(
+                text = "Tickets List",
                 fontSize = 35.sp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(0.dp, 40.dp, 0.dp, 30.dp),
-                textAlign = TextAlign.Center)
-            Button(onClick = {
-                navController.navigate("ticketDetails")
-            },
+                textAlign = TextAlign.Center
+            )
+            Button(
+                onClick = {
+                    navController.navigate("ticketDetails")
+                },
                 modifier = Modifier
                     .padding(0.dp, 0.dp, 0.dp, 40.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Yellow,
                     contentColor = Color.Black
                 ), contentPadding = PaddingValues(10.dp),
-                shape = RoundedCornerShape(10.dp)) {
+                shape = RoundedCornerShape(10.dp)
+            ) {
                 Spacer(modifier = Modifier.width(40.dp))
-                Text(text = "Create a new ticket",
+                Text(
+                    text = "Create a new ticket",
                     fontSize = 20.sp,
-                    textAlign = TextAlign.Center)
+                    textAlign = TextAlign.Center
+                )
                 Spacer(modifier = Modifier.width(40.dp))
             }
-            Text(text = "Opening Ceremony Tickets",
+            Text(
+                text = "Opening Ceremony Tickets",
                 fontSize = 20.sp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(0.dp, 20.dp),
-                textAlign = TextAlign.Center)
+                textAlign = TextAlign.Center
+            )
         }
         openingTickets(onEvent = onEvent, ticketState = stateOpening)
         item {
-            Text(text = "Closing Ceremony Tickets",
+            Text(
+                text = "Closing Ceremony Tickets",
                 fontSize = 20.sp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(0.dp, 20.dp),
-                textAlign = TextAlign.Center)
+                textAlign = TextAlign.Center
+            )
         }
         closingTickets(onEvent, stateClosing)
     }
@@ -148,14 +160,16 @@ fun CreateTicketScreen(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var selectedTicketType by remember { mutableStateOf("") }
-    var textFieldSize by remember { mutableStateOf(Size.Zero)}
-    var ticketTypeString by remember { mutableStateOf("")}
-    var allowCreate by remember { mutableStateOf(false)}
-    var buttonClicked by remember { mutableStateOf(false)}
+    var textFieldSize by remember { mutableStateOf(Size.Zero) }
+    var ticketTypeString by remember { mutableStateOf("") }
+    var allowCreate by remember { mutableStateOf(false) }
+    var buttonClicked by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
         Text(
             text = "Tickets Create",
             fontSize = 35.sp,
@@ -169,10 +183,12 @@ fun CreateTicketScreen(
             Icons.Filled.KeyboardArrowUp
         else
             Icons.Filled.KeyboardArrowDown
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .padding(40.dp, 0.dp, 40.dp, 5.dp)
-            .align(Alignment.CenterHorizontally)){
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp, 0.dp, 40.dp, 5.dp)
+                .align(Alignment.CenterHorizontally)
+        ) {
             OutlinedTextField(
                 value = ticketTypeString,
                 onValueChange = { ticketTypeString = it },
@@ -182,9 +198,9 @@ fun CreateTicketScreen(
                         textFieldSize = coordinates.size.toSize()
                     }
                     .fillMaxWidth(),
-                label = {Text("Select ticket ceremony type")},
+                label = { Text("Select ticket ceremony type") },
                 trailingIcon = {
-                    Icon(icon,"contentDescription",
+                    Icon(icon, "contentDescription",
                         Modifier.clickable { showMenu = !showMenu })
                 },
                 shape = RectangleShape,
@@ -194,16 +210,17 @@ fun CreateTicketScreen(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
                 modifier = Modifier
-                    .width(with(LocalDensity.current){textFieldSize.width.toDp()})
+                    .width(with(LocalDensity.current) { textFieldSize.width.toDp() })
             ) {
                 DropdownMenuItem(text = {
-                    Text(text = "Opening Ceremony") },
+                    Text(text = "Opening Ceremony")
+                },
                     onClick = {
                         selectedTicketType = "opening"
                         ticketTypeString = "Opening ceremony"
                         showMenu = false
                     })
-                DropdownMenuItem( text = {
+                DropdownMenuItem(text = {
                     Text(text = "Closing ceremony")
                 },
                     onClick = {
@@ -230,7 +247,7 @@ fun CreateTicketScreen(
         var imageUri by remember { mutableStateOf<Uri?>(null) }
         val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = {uri -> imageUri = uri}
+            onResult = { uri -> imageUri = uri }
         )
         Button(
             onClick = {
@@ -270,17 +287,18 @@ fun CreateTicketScreen(
                     .align(Alignment.CenterHorizontally)
             )
         }
-        Button(onClick = {
-             if (!(imageUri != null && selectedTicketType != "" && userName.text != "")){
-                 Toast.makeText(context, "Please fill in the blanks", Toast.LENGTH_LONG).show()
-             } else {
-                 Log.d("TicketCreateScreen", selectedTicketType)
-                 onEvent(TicketEvent.SetName(userName.text))
-                 onEvent(TicketEvent.SetTicketType(selectedTicketType))
-                 onEvent(TicketEvent.SetPicture(imageUri!!))
-                 onEvent(TicketEvent.SaveTicket)
-             }
-        },
+        Button(
+            onClick = {
+                if (!(imageUri != null && selectedTicketType != "" && userName.text != "")) {
+                    Toast.makeText(context, "Please fill in the blanks", Toast.LENGTH_LONG).show()
+                } else {
+                    Log.d("TicketCreateScreen", selectedTicketType)
+                    onEvent(TicketEvent.SetName(userName.text))
+                    onEvent(TicketEvent.SetTicketType(selectedTicketType))
+                    onEvent(TicketEvent.SetPicture(imageUri!!))
+                    onEvent(TicketEvent.SaveTicket)
+                }
+            },
             shape = RectangleShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -288,86 +306,94 @@ fun CreateTicketScreen(
                 .padding(40.dp, 50.dp, 40.dp, 5.dp)
                 .size(310.dp, 60.dp)
                 .border(1.dp, Color.Black),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Yellow,
-            contentColor = Color.Black
-        )) {
-            Text(text = "Create",
-            fontSize = 20.sp)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Yellow,
+                contentColor = Color.Black
+            )
+        ) {
+            Text(
+                text = "Create",
+                fontSize = 20.sp
+            )
         }
     }
 }
 
-fun LazyListScope.openingTickets(onEvent: (TicketEvent) -> Unit,
-                               ticketState: TicketState){
-        onEvent(TicketEvent.SortTickets("opening"))
-        items(ticketState.tickets) { opening_ticket ->
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxSize()
+fun LazyListScope.openingTickets(
+    onEvent: (TicketEvent) -> Unit,
+    ticketState: TicketState
+) {
+    onEvent(TicketEvent.SortTickets("opening"))
+    items(ticketState.tickets) { opening_ticket ->
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = opening_ticket.Name,
-                            fontSize = 20.sp
-                        )
-                        Text(
-                            text = opening_ticket.Time,
-                            fontSize = 12.sp
-                        )
-
-                    }
-                    val uri = Uri.parse(opening_ticket.Picture)
-                    Image(
-                        painter = rememberAsyncImagePainter(model = uri),
-                        contentDescription = "User selected image",
-                        modifier = Modifier
-                            .background(Color.LightGray)
-                            .align(Alignment.CenterVertically)
-                            .padding(10.dp),
-                        contentScale = ContentScale.Crop
+                    Text(
+                        text = opening_ticket.Name,
+                        fontSize = 20.sp
                     )
+                    Text(
+                        text = opening_ticket.Time,
+                        fontSize = 12.sp
+                    )
+
                 }
+                val uri = Uri.parse(opening_ticket.Picture)
+                Image(
+                    painter = rememberAsyncImagePainter(model = uri),
+                    contentDescription = "User selected image",
+                    modifier = Modifier
+                        .background(Color.LightGray)
+                        .align(Alignment.CenterVertically)
+                        .padding(10.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
     }
-fun LazyListScope.closingTickets(onEvent: (TicketEvent) -> Unit,
-    ticketState: TicketState){
-        onEvent(TicketEvent.SortTickets("closing"))
-        items(ticketState.tickets) { closing_ticket ->
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = closing_ticket.Name,
-                            fontSize = 20.sp
-                        )
-                        Text(
-                            text = closing_ticket.Time,
-                            fontSize = 12.sp
-                        )
+}
 
-                    }
-                    val uri = Uri.parse(closing_ticket.Picture)
-                    Image(
-                        painter = rememberAsyncImagePainter(model = uri),
-                        contentDescription = "User selected image",
-                        modifier = Modifier
-                            .background(Color.LightGray)
-                            .align(Alignment.CenterVertically)
-                            .padding(10.dp),
-                        contentScale = ContentScale.Crop
+fun LazyListScope.closingTickets(
+    onEvent: (TicketEvent) -> Unit,
+    ticketState: TicketState
+) {
+    onEvent(TicketEvent.SortTickets("closing"))
+    items(ticketState.tickets) { closing_ticket ->
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = closing_ticket.Name,
+                        fontSize = 20.sp
                     )
+                    Text(
+                        text = closing_ticket.Time,
+                        fontSize = 12.sp
+                    )
+
                 }
+                val uri = Uri.parse(closing_ticket.Picture)
+                Image(
+                    painter = rememberAsyncImagePainter(model = uri),
+                    contentDescription = "User selected image",
+                    modifier = Modifier
+                        .background(Color.LightGray)
+                        .align(Alignment.CenterVertically)
+                        .padding(10.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
     }
+}
 
 @Composable
 @FontScalePreview

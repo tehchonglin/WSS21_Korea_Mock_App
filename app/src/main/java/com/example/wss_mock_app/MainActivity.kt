@@ -3,10 +3,17 @@
 package com.example.wss_mock_app
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import android.provider.Settings
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -57,6 +64,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -69,6 +77,11 @@ import androidx.room.Room
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 
 class MainActivity : ComponentActivity() {
+    private val permissionsToRequest = arrayOf(
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VIDEO"
+    )
     private val db by lazy {
         Room.databaseBuilder(
             applicationContext,
@@ -85,17 +98,66 @@ class MainActivity : ComponentActivity() {
             }
         }
     )
-    @OptIn(ExperimentalMaterial3Api::class)
+
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             WSS_Mock_AppTheme {
-                val state by viewModel.state.collectAsState()
+                val permissionViewModel = viewModel<PermissionsViewModel>()
+                val dialogQueue = permissionViewModel.visiblePermissionDialogQueue
+                val multiplePermissionResultLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions(),
+                    onResult = { perms ->
+                        permissionsToRequest.forEach { permission ->
+                            permissionViewModel.onPermissionResult(
+                                permission = permission,
+                                isGranted = perms[permission] == true
+                            )
+                        }
+                    }
+                )
+                dialogQueue
+                    .reversed()
+                    .forEach { permission ->
+                        PermissionDialog(
+                            permissionTextProvider = when (permission) {
+                                "android.permission.READ_MEDIA_IMAGES" -> {
+                                    ImagesPermissionTextProvider()
+                                }
+
+                                "android.permission.READ_MEDIA_AUDIO" -> {
+                                    RecordAudioPermissionTextProvider()
+                                }
+
+                                "android.permission.READ_MEDIA_VIDEO" -> {
+                                    VideoPermissionTextProvider()
+                                }
+
+                                else -> return@forEach
+                            },
+                            isPermanentlyDeclined = !shouldShowRequestPermissionRationale(
+                                permission
+                            ),
+                            onDismiss = permissionViewModel::dismissDialog,
+                            onOkClick = {
+                                permissionViewModel.dismissDialog()
+                                multiplePermissionResultLauncher.launch(
+                                    arrayOf(permission)
+                                )
+                            },
+                            onGoToAppSettingsClick = ::openAppSettings
+                        )
+                    }
+                if (checkPermissions(this, permissionsToRequest)) {
+                    multiplePermissionResultLauncher.launch(permissionsToRequest)
+                }
+
                 val stateOpening by viewModel.stateOpening.collectAsState()
                 val stateClosing by viewModel.stateClosing.collectAsState()
                 val navController = rememberNavController()
-                Scaffold (
+                Scaffold(
                     bottomBar = {
                         BottomNavigationBar(items = listOf(
                             BottomNavItem(
@@ -114,32 +176,52 @@ class MainActivity : ComponentActivity() {
                                 icon = Icons.Default.LibraryMusic
                             )
                         ),
-                        navController = navController,
-                        onItemClick = {
+                            navController = navController,
+                            onItemClick = {
                                 navController.navigate(it.route)
                             })
                     }
-                        ){
-                    Navigation(navController = navController, stateOpening, stateClosing, viewModel::onEvent)
+                ) {
+                    Navigation(
+                        navController = navController,
+                        stateOpening,
+                        stateClosing,
+                        viewModel::onEvent
+                    )
                 }
             }
         }
     }
 }
 
+fun Activity.openAppSettings() {
+    Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", packageName, null)
+    ).also(::startActivity)
+}
+
+fun checkPermissions(context: Context, permissions: Array<String>): Boolean {
+    return permissions.all {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    }
+}
+
 @Composable
-fun Navigation(navController: NavHostController,
+fun Navigation(
+    navController: NavHostController,
     stateOpening: TicketState,
-   stateClosing: TicketState,
-   onEvent: (TicketEvent) -> Unit) {
-        NavHost(navController = navController, startDestination = "Events"){
-        composable("Events"){
+    stateClosing: TicketState,
+    onEvent: (TicketEvent) -> Unit
+) {
+    NavHost(navController = navController, startDestination = "Events") {
+        composable("Events") {
             EventsScreen()
         }
-        composable("Tickets"){
+        composable("Tickets") {
             TicketsScreen(stateOpening, stateClosing, onEvent)
         }
-        composable("Records"){
+        composable("Records") {
             RecordsScreen()
         }
     }
@@ -148,7 +230,7 @@ fun Navigation(navController: NavHostController,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomNavigationBar(
-    items : List<BottomNavItem>,
+    items: List<BottomNavItem>,
     navController: NavController,
     modifier: Modifier = Modifier,
     onItemClick: (BottomNavItem) -> Unit
@@ -158,9 +240,8 @@ fun BottomNavigationBar(
         modifier = modifier,
         containerColor = Color.LightGray,
         tonalElevation = 5.dp
-    ){
-        items.forEach{
-            item ->
+    ) {
+        items.forEach { item ->
             val selected = item.route == backStackEntry.value?.destination?.route
             NavigationBarItem(
                 selected = selected,
@@ -171,24 +252,30 @@ fun BottomNavigationBar(
                 ),
                 icon = {
                     Column(horizontalAlignment = CenterHorizontally) {
-                        if(item.badgeCount > 0){
+                        if (item.badgeCount > 0) {
                             BadgedBox(
                                 badge = {
-                                    Badge{
+                                    Badge {
                                         Text(text = item.badgeCount.toString())
                                     }
                                 }) {
-                                Icon(imageVector = item.icon,
-                                    contentDescription = item.name)
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.name
+                                )
                             }
                         } else {
-                            Icon(imageVector = item.icon,
-                                contentDescription = item.name)
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.name
+                            )
                         }
                         if (selected) {
-                            Text(text = item.name,
-                            textAlign = TextAlign.Center,
-                            fontSize = 10.sp)
+                            Text(
+                                text = item.name,
+                                textAlign = TextAlign.Center,
+                                fontSize = 10.sp
+                            )
                         }
                     }
                 })
@@ -198,37 +285,15 @@ fun BottomNavigationBar(
 
 @Composable
 fun EventsScreen() {
-    Box(contentAlignment = Alignment.Center,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(0.dp, 0.dp, 0.dp, 50.dp)
-        ){
+    ) {
         val eventList = listOf(
-            EventDetails("1",
-                "Android Thumbnail",
-                "This is thumbnail of android.",
-                "This is the thumbnail of android, which looks very nice," +
-                "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground))
-            ),
-            EventDetails("2",
-                "Arrow Thumbnail",
-                "This is arrow thumbnail of android.",
-                "This is the arrow thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent))
-            ),
-            EventDetails("1",
+            EventDetails(
+                "1",
                 "Android Thumbnail",
                 "This is thumbnail of android.",
                 "This is the thumbnail of android, which looks very nice," +
@@ -236,11 +301,14 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(painterResource(id = R.drawable.ic_launcher_foreground),
+                listOf(
                     painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground))
+                    painterResource(id = R.drawable.ic_launcher_foreground),
+                    painterResource(id = R.drawable.ic_launcher_foreground)
+                )
             ),
-            EventDetails("2",
+            EventDetails(
+                "2",
                 "Arrow Thumbnail",
                 "This is arrow thumbnail of android.",
                 "This is the arrow thumbnail of android, which looks very nice," +
@@ -248,11 +316,14 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(painterResource(id = R.drawable.arrow_right_transparent),
+                listOf(
                     painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent))
+                    painterResource(id = R.drawable.arrow_right_transparent),
+                    painterResource(id = R.drawable.arrow_right_transparent)
+                )
             ),
-            EventDetails("1",
+            EventDetails(
+                "1",
                 "Android Thumbnail",
                 "This is thumbnail of android.",
                 "This is the thumbnail of android, which looks very nice," +
@@ -260,11 +331,14 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(painterResource(id = R.drawable.ic_launcher_foreground),
+                listOf(
                     painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground))
+                    painterResource(id = R.drawable.ic_launcher_foreground),
+                    painterResource(id = R.drawable.ic_launcher_foreground)
+                )
             ),
-            EventDetails("2",
+            EventDetails(
+                "2",
                 "Arrow Thumbnail",
                 "This is arrow thumbnail of android.",
                 "This is the arrow thumbnail of android, which looks very nice," +
@@ -272,11 +346,14 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(painterResource(id = R.drawable.arrow_right_transparent),
+                listOf(
                     painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent))
+                    painterResource(id = R.drawable.arrow_right_transparent),
+                    painterResource(id = R.drawable.arrow_right_transparent)
+                )
             ),
-            EventDetails("1",
+            EventDetails(
+                "1",
                 "Android Thumbnail",
                 "This is thumbnail of android.",
                 "This is the thumbnail of android, which looks very nice," +
@@ -284,11 +361,14 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(painterResource(id = R.drawable.ic_launcher_foreground),
+                listOf(
                     painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground))
+                    painterResource(id = R.drawable.ic_launcher_foreground),
+                    painterResource(id = R.drawable.ic_launcher_foreground)
+                )
             ),
-            EventDetails("2",
+            EventDetails(
+                "2",
                 "Arrow Thumbnail",
                 "This is arrow thumbnail of android.",
                 "This is the arrow thumbnail of android, which looks very nice," +
@@ -296,22 +376,57 @@ fun EventsScreen() {
                         "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
                 true,
                 painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(painterResource(id = R.drawable.arrow_right_transparent),
+                listOf(
                     painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent))
+                    painterResource(id = R.drawable.arrow_right_transparent),
+                    painterResource(id = R.drawable.arrow_right_transparent)
+                )
+            ),
+            EventDetails(
+                "1",
+                "Android Thumbnail",
+                "This is thumbnail of android.",
+                "This is the thumbnail of android, which looks very nice," +
+                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
+                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
+                true,
+                painterResource(id = R.drawable.ic_launcher_foreground),
+                listOf(
+                    painterResource(id = R.drawable.ic_launcher_foreground),
+                    painterResource(id = R.drawable.ic_launcher_foreground),
+                    painterResource(id = R.drawable.ic_launcher_foreground)
+                )
+            ),
+            EventDetails(
+                "2",
+                "Arrow Thumbnail",
+                "This is arrow thumbnail of android.",
+                "This is the arrow thumbnail of android, which looks very nice," +
+                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
+                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
+                true,
+                painterResource(id = R.drawable.arrow_right_transparent),
+                listOf(
+                    painterResource(id = R.drawable.arrow_right_transparent),
+                    painterResource(id = R.drawable.arrow_right_transparent),
+                    painterResource(id = R.drawable.arrow_right_transparent)
+                )
             ),
         )
         val navController = rememberNavController()
         NavHost(navController, startDestination = EventsScreen.EventsList.route) {
             composable(EventsScreen.EventsList.route) {
-                EventsList(navController,eventList)
+                EventsList(navController, eventList)
             }
             composable(
                 EventsScreen.Details.route,
                 arguments = listOf(navArgument("eventId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getString("eventId")
-                val event = findEventById(eventId,eventList) // Implement this function to find the event by ID
+                val event = findEventById(
+                    eventId,
+                    eventList
+                ) // Implement this function to find the event by ID
                 if (event != null) {
                     DetailsScreen(event)
                 } else {
@@ -324,19 +439,28 @@ fun EventsScreen() {
 
 
 @Composable
-fun TicketsScreen(stateOpening: TicketState,
-                  stateClosing: TicketState,
-    onEvent: (TicketEvent) -> Unit){
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .padding(0.dp, 0.dp, 0.dp, 80.dp),
-        contentAlignment = Alignment.Center){
+fun TicketsScreen(
+    stateOpening: TicketState,
+    stateClosing: TicketState,
+    onEvent: (TicketEvent) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(0.dp, 0.dp, 0.dp, 80.dp),
+        contentAlignment = Alignment.Center
+    ) {
         val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = "ticketList" ){
-            composable("ticketList"){
-                TicketsList(navController = navController, onEvent = onEvent, stateOpening, stateClosing)
+        NavHost(navController = navController, startDestination = "ticketList") {
+            composable("ticketList") {
+                TicketsList(
+                    navController = navController,
+                    onEvent = onEvent,
+                    stateOpening,
+                    stateClosing
+                )
             }
-            composable("ticketDetails"){
+            composable("ticketDetails") {
                 CreateTicketScreen(navController, onEvent)
             }
         }
@@ -346,79 +470,10 @@ fun TicketsScreen(stateOpening: TicketState,
 
 @Composable
 fun RecordsScreen() {
-    Box(modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center){
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Text(text = "Records Screen")
-    }
-}
-
-@Composable
-fun ImageList(images: List<Painter>, isExpanded: MutableState<Boolean>, selectedImage: MutableState<Painter?>) {
-    Row {
-        images.forEach { image ->
-            Image(
-                painter = image,
-                contentDescription = "some useful description",
-                modifier = Modifier
-                    .padding(4.dp)
-                    .clickable {
-                        isExpanded.value = true
-                        selectedImage.value = image
-                    }
-                    .size(100.dp)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainPage() {
-    var name by remember {
-        mutableStateOf("")
-    }
-    var names by remember {
-        mutableStateOf(listOf<String>())
-    }
-    Column (
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ){
-        Row (
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(value = name,
-                modifier = Modifier.weight(1f),
-                onValueChange = { text ->
-                    name = text
-                })
-            Spacer(modifier = Modifier.width(16.dp))
-            Button(onClick = {
-                if(name.isNotBlank()){
-                    names = names + name
-                    name = ""
-                }
-            }) {
-                Text(text = "Add")
-            }
-        }
-        NameList(names = names)
-    }
-}
-
-@Composable
-fun NameList(
-    names : List<String>,
-    modifier: Modifier = Modifier) {
-    LazyColumn(modifier){
-        items(names){
-                currentName ->
-            Text(text = currentName,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth())
-            Divider()
-        }
     }
 }

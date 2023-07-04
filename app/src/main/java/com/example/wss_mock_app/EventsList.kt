@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -31,13 +32,16 @@ import androidx.compose.ui.window.Popup
 import androidx.navigation.NavController
 
 @Composable
-fun EventsList(navController: NavController,
-    events: List<EventDetails>) {
-    Column (
+fun EventsList(
+    navController: NavController,
+    events: List<EventDetails>
+) {
+    Column(
         modifier = Modifier
             .fillMaxSize()
-    ){
-        Text(text = "Events List",
+    ) {
+        Text(
+            text = "Events List",
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -45,7 +49,8 @@ fun EventsList(navController: NavController,
                 .padding(0.dp, 20.dp)
                 .fillMaxWidth()
         )
-        Text(text = "All / Unread / Read",
+        Text(
+            text = "All / Unread / Read",
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -64,8 +69,10 @@ sealed class EventsScreen(val route: String) {
     object Details : EventsScreen("details/{eventId}")
 }
 
-fun findEventById(eventId: String?,
-    events: List<EventDetails>): EventDetails? {
+fun findEventById(
+    eventId: String?,
+    events: List<EventDetails>
+): EventDetails? {
     return events.find { it.id == eventId }
 }
 
@@ -73,57 +80,73 @@ fun findEventById(eventId: String?,
 @Composable
 fun DetailsScreen(event: EventDetails) {
     // Display event details here
-    Column (
+    Column(
         modifier = Modifier.fillMaxSize()
-            ){
-        Text(text = "Event Details",
+    ) {
+        Text(
+            text = "Event Details",
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(0.dp, 20.dp, 0.dp, 20.dp)
-                .fillMaxWidth())
-        Text(text = event.Name,
+                .fillMaxWidth()
+        )
+        Text(
+            text = event.Name,
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(0.dp, 10.dp, 0.dp, 5.dp)
-                .fillMaxWidth())
-        Text(text = "30 views",
+                .fillMaxWidth()
+        )
+        Text(
+            text = "30 views",
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth())
-        Row (modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center){
-        var selectedImage = remember { mutableStateOf<Painter?>(null) }
-        var isExpanded = remember {
-            mutableStateOf(false)
-        }
-        ImageList(images = event.Pictures, isExpanded = isExpanded, selectedImage = selectedImage)
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            var selectedImage = remember { mutableStateOf<Painter?>(null) }
+            var isExpanded = remember {
+                mutableStateOf(false)
+            }
+            ImageList(
+                images = event.Pictures,
+                isExpanded = isExpanded,
+                selectedImage = selectedImage
+            )
 
-        if (isExpanded.value && selectedImage.value != null) {
-            Popup(
-                alignment = Alignment.Center,
-                onDismissRequest = { isExpanded.value = false }
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .background(Color.Gray.copy(alpha = 0.8f))
-                        .fillMaxSize()
-                        .clickable { isExpanded.value = false }
+            if (isExpanded.value && selectedImage.value != null) {
+                Popup(
+                    alignment = Alignment.Center,
+                    onDismissRequest = { isExpanded.value = false }
                 ) {
-                    Image(painter = selectedImage.value!!,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize())
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .background(Color.Gray.copy(alpha = 0.8f))
+                            .fillMaxSize()
+                            .clickable { isExpanded.value = false }
+                    ) {
+                        Image(
+                            painter = selectedImage.value!!,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
-        }
-        Text(text = event.DetailedDescription,
+        Text(
+            text = event.DetailedDescription,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(15.dp,15.dp,15.dp,15.dp),
-            fontSize = 15.sp)
+            modifier = Modifier.padding(15.dp, 15.dp, 15.dp, 15.dp),
+            fontSize = 15.sp
+        )
     }
 }
 
@@ -132,7 +155,8 @@ fun DetailsScreen(event: EventDetails) {
 @DevicePreview
 fun DetailsScreenPreview() {
     val event =
-        EventDetails("1",
+        EventDetails(
+            "1",
             "Android1",
             "This is android 1",
             "This is the thumbnail of android, which looks very nice," +
@@ -140,9 +164,11 @@ fun DetailsScreenPreview() {
                     "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
             true,
             painterResource(id = R.drawable.ic_launcher_foreground),
-            listOf(painterResource(id = R.drawable.ic_launcher_foreground),
+            listOf(
                 painterResource(id = R.drawable.ic_launcher_foreground),
-                painterResource(id = R.drawable.ic_launcher_foreground))
+                painterResource(id = R.drawable.ic_launcher_foreground),
+                painterResource(id = R.drawable.ic_launcher_foreground)
+            )
         )
     DetailsScreen(event = event)
 }
@@ -150,33 +176,36 @@ fun DetailsScreenPreview() {
 @Composable
 fun EventsCard(
     events: List<EventDetails>,
-    onClick: (EventDetails)-> Unit
+    onClick: (EventDetails) -> Unit
 ) {
-    LazyColumn (
+    LazyColumn(
         modifier = Modifier.fillMaxSize()
-    ){
-        items(events){
-                event ->
+    ) {
+        items(events) { event ->
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
                     onClick(event)
-                }){
+                }) {
                 Row {
                     Image(
                         painter = event.Thumbnail,
                         contentDescription = "Picture of ${event.Name}",
-                        modifier = Modifier.size(125.dp)
+                        modifier = Modifier
+                            .size(125.dp)
                             .padding(10.dp)
                     )
                     Column {
-                        Text(text = event.Name,
+                        Text(
+                            text = event.Name,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(0.dp,10.dp,0.dp,5.dp)
+                            modifier = Modifier.padding(0.dp, 10.dp, 0.dp, 5.dp)
                         )
-                        Text(text = event.Description,
-                            modifier = Modifier.padding(0.dp,0.dp,0.dp,5.dp))
-                        val status:String = if(event.Status){
+                        Text(
+                            text = event.Description,
+                            modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 5.dp)
+                        )
+                        val status: String = if (event.Status) {
                             "Read"
                         } else {
                             "Unread"
@@ -186,6 +215,30 @@ fun EventsCard(
                 }
             }
             Divider()
+        }
+    }
+}
+
+
+@Composable
+fun ImageList(
+    images: List<Painter>,
+    isExpanded: MutableState<Boolean>,
+    selectedImage: MutableState<Painter?>
+) {
+    Row {
+        images.forEach { image ->
+            Image(
+                painter = image,
+                contentDescription = "some useful description",
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clickable {
+                        isExpanded.value = true
+                        selectedImage.value = image
+                    }
+                    .size(100.dp)
+            )
         }
     }
 }
