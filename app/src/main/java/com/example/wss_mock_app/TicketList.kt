@@ -9,7 +9,6 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,9 +35,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -61,12 +61,11 @@ import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun TicketsList(
     navController: NavController,
@@ -243,7 +242,7 @@ fun CreateTicketScreen(
         )
         Button(
             onClick = {
-                if(audioPermissionsState.status.isGranted and videoPermissionsState.status.isGranted and imagePermissionsState.status.isGranted){
+                if (audioPermissionsState.status.isGranted and videoPermissionsState.status.isGranted and imagePermissionsState.status.isGranted) {
                     singlePhotoPickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
@@ -322,9 +321,15 @@ fun LazyListScope.openingTickets(
 ) {
     onEvent(TicketEvent.SortTickets("opening"))
     items(ticketState.tickets) { opening_ticket ->
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            ),
+            modifier = Modifier.padding(8.dp)
+        ) {
             Row(
-                modifier = Modifier.fillMaxSize()
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(8.dp)
             ) {
                 Column(
                     modifier = Modifier.weight(1f)
@@ -339,14 +344,13 @@ fun LazyListScope.openingTickets(
                     )
 
                 }
-                val uri = Uri.parse(opening_ticket.Picture)
-                Image(
-                    painter = rememberAsyncImagePainter(model = uri),
-                    contentDescription = "User selected image",
+                AsyncImage(
+                    model = opening_ticket.Picture,
+                    contentDescription = null,
                     modifier = Modifier
-                        .background(Color.LightGray)
                         .align(Alignment.CenterVertically)
-                        .padding(10.dp),
+                        .padding(10.dp)
+                        .size(128.dp),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -360,9 +364,15 @@ fun LazyListScope.closingTickets(
 ) {
     onEvent(TicketEvent.SortTickets("closing"))
     items(ticketState.tickets) { closing_ticket ->
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            ),
+            modifier = Modifier.padding(8.dp)
+        ) {
             Row(
-                modifier = Modifier.fillMaxSize()
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(8.dp)
             ) {
                 Column(
                     modifier = Modifier.weight(1f)
@@ -377,14 +387,13 @@ fun LazyListScope.closingTickets(
                     )
 
                 }
-                val uri = Uri.parse(closing_ticket.Picture)
-                Image(
-                    painter = rememberAsyncImagePainter(model = uri),
-                    contentDescription = "User selected image",
+                AsyncImage(
+                    model = closing_ticket.Picture,
+                    contentDescription = null,
                     modifier = Modifier
-                        .background(Color.LightGray)
                         .align(Alignment.CenterVertically)
-                        .padding(10.dp),
+                        .padding(10.dp)
+                        .size(128.dp),
                     contentScale = ContentScale.Crop
                 )
             }

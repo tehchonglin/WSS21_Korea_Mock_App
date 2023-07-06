@@ -61,7 +61,8 @@ class MainActivity : ComponentActivity() {
     private val permissionsToRequest = arrayOf(
         Manifest.permission.READ_MEDIA_IMAGES,
         Manifest.permission.READ_MEDIA_VIDEO,
-        Manifest.permission.READ_MEDIA_AUDIO
+        Manifest.permission.READ_MEDIA_AUDIO,
+        Manifest.permission.MANAGE_EXTERNAL_STORAGE
     )
     private val db by lazy {
         Room.databaseBuilder(
