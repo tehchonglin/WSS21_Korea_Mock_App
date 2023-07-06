@@ -1,9 +1,11 @@
 package com.example.wss_mock_app
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +32,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
@@ -40,49 +40,31 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarData
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.ticker
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
-import org.jetbrains.annotations.Async
-import kotlin.reflect.KClass
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,20 +133,30 @@ fun TicketsList(
 }
 
 
+@OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("CoroutineCreationDuringComposition")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTicketScreen(
     navController: NavController,
-    onEvent: (TicketEvent) -> Unit
+    onEvent: (TicketEvent) -> Unit,
+    multiplePermissionResultLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var selectedTicketType by remember { mutableStateOf("") }
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
     var ticketTypeString by remember { mutableStateOf("") }
-    var allowCreate by remember { mutableStateOf(false) }
-    var buttonClicked by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val permissionsToRequest = arrayOf(
+        Manifest.permission.READ_MEDIA_IMAGES,
+        Manifest.permission.READ_MEDIA_VIDEO,
+        Manifest.permission.READ_MEDIA_AUDIO
+    )
+    val imagePermissionsState =
+        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_IMAGES)
+    val videoPermissionsState =
+        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_VIDEO)
+    val audioPermissionsState =
+        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_AUDIO)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -251,9 +243,13 @@ fun CreateTicketScreen(
         )
         Button(
             onClick = {
-                singlePhotoPickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                )
+                if(audioPermissionsState.status.isGranted and videoPermissionsState.status.isGranted and imagePermissionsState.status.isGranted){
+                    singlePhotoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                } else {
+                    multiplePermissionResultLauncher.launch(permissionsToRequest)
+                }
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Cyan,
@@ -297,6 +293,7 @@ fun CreateTicketScreen(
                     onEvent(TicketEvent.SetTicketType(selectedTicketType))
                     onEvent(TicketEvent.SetPicture(imageUri!!))
                     onEvent(TicketEvent.SaveTicket)
+                    navController.navigate("ticketList")
                 }
             },
             shape = RectangleShape,
@@ -400,7 +397,10 @@ fun LazyListScope.closingTickets(
 @DevicePreview
 fun CreateTicketScreenPreview() {
     val navController = rememberNavController()
-    CreateTicketScreen(navController = navController, {})
+    val permissionlauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = {})
+    CreateTicketScreen(navController = navController, {}, permissionlauncher)
 }
 
 @Composable
