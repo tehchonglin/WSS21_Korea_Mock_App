@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,8 +61,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 
 @Composable
@@ -137,25 +135,20 @@ fun TicketsList(
 @Composable
 fun CreateTicketScreen(
     navController: NavController,
-    onEvent: (TicketEvent) -> Unit,
-    multiplePermissionResultLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
+    onEvent: (TicketEvent) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var selectedTicketType by remember { mutableStateOf("") }
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
     var ticketTypeString by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val permissionsToRequest = arrayOf(
-        Manifest.permission.READ_MEDIA_IMAGES,
-        Manifest.permission.READ_MEDIA_VIDEO,
-        Manifest.permission.READ_MEDIA_AUDIO
+    val multiplePermissionState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.READ_MEDIA_AUDIO
+        )
     )
-    val imagePermissionsState =
-        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_IMAGES)
-    val videoPermissionsState =
-        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_VIDEO)
-    val audioPermissionsState =
-        rememberPermissionState(permission = Manifest.permission.READ_MEDIA_AUDIO)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -242,12 +235,12 @@ fun CreateTicketScreen(
         )
         Button(
             onClick = {
-                if (audioPermissionsState.status.isGranted and videoPermissionsState.status.isGranted and imagePermissionsState.status.isGranted) {
+                if (multiplePermissionState.allPermissionsGranted) {
                     singlePhotoPickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 } else {
-                    multiplePermissionResultLauncher.launch(permissionsToRequest)
+                    multiplePermissionState.launchMultiplePermissionRequest()
                 }
             },
             colors = ButtonDefaults.buttonColors(
@@ -344,8 +337,10 @@ fun LazyListScope.openingTickets(
                     )
 
                 }
+                val imageUri = Uri.parse(opening_ticket.Picture)
+                Log.d("TicketList", opening_ticket.Picture)
                 AsyncImage(
-                    model = opening_ticket.Picture,
+                    model = imageUri,
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -387,8 +382,9 @@ fun LazyListScope.closingTickets(
                     )
 
                 }
+                val imageUri = Uri.parse(closing_ticket.Picture)
                 AsyncImage(
-                    model = closing_ticket.Picture,
+                    model = imageUri,
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -406,10 +402,7 @@ fun LazyListScope.closingTickets(
 @DevicePreview
 fun CreateTicketScreenPreview() {
     val navController = rememberNavController()
-    val permissionlauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = {})
-    CreateTicketScreen(navController = navController, {}, permissionlauncher)
+    CreateTicketScreen(navController = navController, {})
 }
 
 @Composable

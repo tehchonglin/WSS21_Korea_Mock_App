@@ -2,18 +2,10 @@
 
 package com.example.wss_mock_app
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -58,12 +49,6 @@ import androidx.room.Room
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 
 class MainActivity : ComponentActivity() {
-    private val permissionsToRequest = arrayOf(
-        Manifest.permission.READ_MEDIA_IMAGES,
-        Manifest.permission.READ_MEDIA_VIDEO,
-        Manifest.permission.READ_MEDIA_AUDIO,
-        Manifest.permission.MANAGE_EXTERNAL_STORAGE
-    )
     private val db by lazy {
         Room.databaseBuilder(
             applicationContext,
@@ -87,51 +72,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WSS_Mock_AppTheme {
-                val permissionViewModel = viewModel<PermissionsViewModel>()
-                val dialogQueue = permissionViewModel.visiblePermissionDialogQueue
-                val multiplePermissionResultLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions(),
-                    onResult = { perms ->
-                        permissionsToRequest.forEach { permission ->
-                            permissionViewModel.onPermissionResult(
-                                permission = permission,
-                                isGranted = perms[permission] == true
-                            )
-                        }
-                    }
-                )
-                dialogQueue
-                    .reversed()
-                    .forEach { permission ->
-                        PermissionDialog(
-                            permissionTextProvider = when (permission) {
-                                Manifest.permission.READ_MEDIA_IMAGES -> {
-                                    ImagesPermissionTextProvider()
-                                }
-
-                                Manifest.permission.READ_MEDIA_AUDIO -> {
-                                    RecordAudioPermissionTextProvider()
-                                }
-
-                                Manifest.permission.READ_MEDIA_VIDEO -> {
-                                    VideoPermissionTextProvider()
-                                }
-
-                                else -> return@forEach
-                            },
-                            isPermanentlyDeclined = !shouldShowRequestPermissionRationale(
-                                permission
-                            ),
-                            onDismiss = permissionViewModel::dismissDialog,
-                            onOkClick = {
-                                permissionViewModel.dismissDialog()
-                                multiplePermissionResultLauncher.launch(
-                                    arrayOf(permission)
-                                )
-                            },
-                            onGoToAppSettingsClick = ::openAppSettings
-                        )
-                    }
                 val stateOpening by viewModel.stateOpening.collectAsState()
                 val stateClosing by viewModel.stateClosing.collectAsState()
                 val navController = rememberNavController()
@@ -164,36 +104,26 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         stateOpening,
                         stateClosing,
-                        viewModel::onEvent,
-                        multiplePermissionResultLauncher
+                        viewModel::onEvent
                     )
                 }
             }
         }
     }
 }
-
-fun Activity.openAppSettings() {
-    Intent(
-        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-        Uri.fromParts("package", packageName, null)
-    ).also(::startActivity)
-}
-
 @Composable
 fun Navigation(
     navController: NavHostController,
     stateOpening: TicketState,
     stateClosing: TicketState,
-    onEvent: (TicketEvent) -> Unit,
-    multiplePermissionResultLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
+    onEvent: (TicketEvent) -> Unit
 ) {
     NavHost(navController = navController, startDestination = "Events") {
         composable("Events") {
             EventsScreen()
         }
         composable("Tickets") {
-            TicketsScreen(stateOpening, stateClosing, onEvent, multiplePermissionResultLauncher)
+            TicketsScreen(stateOpening, stateClosing, onEvent)
         }
         composable("Records") {
             RecordsScreen()
@@ -416,8 +346,7 @@ fun EventsScreen() {
 fun TicketsScreen(
     stateOpening: TicketState,
     stateClosing: TicketState,
-    onEvent: (TicketEvent) -> Unit,
-    multiplePermissionResultLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
+    onEvent: (TicketEvent) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -436,7 +365,7 @@ fun TicketsScreen(
                 )
             }
             composable("ticketDetails") {
-                CreateTicketScreen(navController, onEvent, multiplePermissionResultLauncher)
+                CreateTicketScreen(navController, onEvent)
             }
         }
     }
