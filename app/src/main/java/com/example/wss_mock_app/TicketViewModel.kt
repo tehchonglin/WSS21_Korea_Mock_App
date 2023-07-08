@@ -23,7 +23,6 @@ class TicketViewModel(
     private val dao: TicketDao
 ) : ViewModel() {
     private val _sortType = MutableStateFlow("")
-
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _tickets = _sortType
         .flatMapLatest { sortType ->
@@ -84,6 +83,8 @@ class TicketViewModel(
         combine(_stateClosing, _sortTypeClosing, _ticketsClosingSort) { state, sortType, tickets ->
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
+
+    val currentTicket = MutableStateFlow<TicketDetails?>(null)
 
     fun onEvent(event: TicketEvent) {
         when (event) {
@@ -161,6 +162,13 @@ class TicketViewModel(
                             ticketType = event.ticketType
                         )
                     }
+                }
+            }
+
+            is TicketEvent.GetTicket -> {
+                viewModelScope.launch {
+                    val ticket = dao.getTicketDetails(event.ticketId,event.ticketType)
+                    currentTicket.value = ticket
                 }
             }
         }

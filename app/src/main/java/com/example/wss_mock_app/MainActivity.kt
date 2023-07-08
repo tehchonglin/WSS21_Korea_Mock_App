@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
             WSS_Mock_AppTheme {
                 val stateOpening by viewModel.stateOpening.collectAsState()
                 val stateClosing by viewModel.stateClosing.collectAsState()
+                val stateDetails by viewModel.currentTicket.collectAsState()
                 val navController = rememberNavController()
                 Scaffold(
                     bottomBar = {
@@ -104,6 +105,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         stateOpening,
                         stateClosing,
+                        stateDetails,
                         viewModel::onEvent
                     )
                 }
@@ -116,6 +118,7 @@ fun Navigation(
     navController: NavHostController,
     stateOpening: TicketState,
     stateClosing: TicketState,
+    stateDetails: TicketDetails?,
     onEvent: (TicketEvent) -> Unit
 ) {
     NavHost(navController = navController, startDestination = "Events") {
@@ -123,7 +126,7 @@ fun Navigation(
             EventsScreen()
         }
         composable("Tickets") {
-            TicketsScreen(stateOpening, stateClosing, onEvent)
+            TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent)
         }
         composable("Records") {
             RecordsScreen()
@@ -346,6 +349,7 @@ fun EventsScreen() {
 fun TicketsScreen(
     stateOpening: TicketState,
     stateClosing: TicketState,
+    stateDetails: TicketDetails?,
     onEvent: (TicketEvent) -> Unit
 ) {
     Box(
@@ -364,9 +368,13 @@ fun TicketsScreen(
                     stateClosing
                 )
             }
-            composable("ticketDetails") {
+            composable("createTicket") {
                 CreateTicketScreen(navController, onEvent)
             }
+            composable("ticketDetails/{ticket_id}"){
+                TicketDetailsScreen(navController, onEvent, stateDetails)
+            }
+
         }
     }
 }

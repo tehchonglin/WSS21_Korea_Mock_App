@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +40,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -53,6 +55,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -88,7 +91,7 @@ fun TicketsList(
             )
             Button(
                 onClick = {
-                    navController.navigate("ticketDetails")
+                    navController.navigate("createTicket")
                 },
                 modifier = Modifier
                     .padding(0.dp, 0.dp, 0.dp, 40.dp),
@@ -233,7 +236,8 @@ fun CreateTicketScreen(
         val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
             onResult = { uri ->
-                imageUri = uri }
+                imageUri = uri
+            }
         )
         Button(
             onClick = {
@@ -310,6 +314,7 @@ fun CreateTicketScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.openingTickets(
     onEvent: (TicketEvent) -> Unit,
     ticketState: TicketState
@@ -320,7 +325,10 @@ fun LazyListScope.openingTickets(
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 4.dp
             ),
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(8.dp),
+            onClick = ({
+
+            })
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -339,7 +347,13 @@ fun LazyListScope.openingTickets(
                     )
 
                 }
-                val byteArray = opening_ticket.Picture?.let { BitmapFactory.decodeByteArray(opening_ticket.Picture, 0, it.size) }
+                val byteArray = opening_ticket.Picture?.let {
+                    BitmapFactory.decodeByteArray(
+                        opening_ticket.Picture,
+                        0,
+                        it.size
+                    )
+                }
                 AsyncImage(
                     model = byteArray,
                     contentDescription = null,
@@ -383,7 +397,13 @@ fun LazyListScope.closingTickets(
                     )
 
                 }
-                val byteArray = closing_ticket.Picture?.let { BitmapFactory.decodeByteArray(closing_ticket.Picture, 0, it.size) }
+                val byteArray = closing_ticket.Picture?.let {
+                    BitmapFactory.decodeByteArray(
+                        closing_ticket.Picture,
+                        0,
+                        it.size
+                    )
+                }
                 AsyncImage(
                     model = byteArray,
                     contentDescription = null,
@@ -399,19 +419,143 @@ fun LazyListScope.closingTickets(
 }
 
 @Composable
-@FontScalePreview
-@DevicePreview
-fun CreateTicketScreenPreview() {
-    val navController = rememberNavController()
-    CreateTicketScreen(navController = navController, {})
+fun TicketDetailsScreen(
+    navController: NavController,
+    onEvent: (TicketEvent) -> Unit,
+    stateDetails: TicketDetails?
+) {
+    onEvent(TicketEvent.GetTicket(1,"opening"))
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Ticket Details",
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(0.dp, 40.dp)
+                .fillMaxWidth()
+        )
+        Card(
+            modifier = Modifier
+                .padding(60.dp, 0.dp, 60.dp, 20.dp)
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
+                .background(Color.White),
+            shape = RectangleShape,
+            border = BorderStroke(1.dp, Color.Black)
+        ) {
+            val byteArray = stateDetails?.Picture?.let {
+                BitmapFactory.decodeByteArray(
+                    stateDetails.Picture,
+                    0,
+                    it.size
+                )
+            }
+            AsyncImage(
+                model = byteArray,
+                contentDescription = "Ticket Picture",
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(0.dp,0.dp,0.dp,20.dp)
+                    .fillMaxWidth()
+                    .height(175.dp)
+                    .background(Color.LightGray),
+                contentScale = ContentScale.Crop
+            )
+            var type by remember { (mutableStateOf("")) }
+            type = if (stateDetails!!.ticketType == "opening") {
+                "Opening Ceremony"
+            } else {
+                "Closing Ceremony"
+            }
+            val name = stateDetails.Name
+            val time = stateDetails.Time
+            val seat = stateDetails.Seat
+            Text(
+                text = "Ticket Type: $type",
+                fontSize = 15.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp,5.dp,0.dp,0.dp)
+            )
+            Text(
+                text = "Audience's Name: $name",
+                fontSize = 15.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp,5.dp,0.dp,0.dp)
+            )
+            Text(
+                text = "Time: $time",
+                fontSize = 15.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp,5.dp,0.dp,0.dp)
+            )
+            Text(
+                text = "Seat: $seat",
+                fontSize = 15.sp,
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp,5.dp,0.dp,100.dp)
+            )
+        }
+        Button(
+            onClick = {
+                TODO()
+            },
+            modifier = Modifier
+                .padding(50.dp, 0.dp, 50.dp, 40.dp)
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Yellow,
+                contentColor = Color.Black
+            ), contentPadding = PaddingValues(10.dp),
+            shape = RoundedCornerShape(5.dp),
+            border = BorderStroke(1.dp, Color.DarkGray)
+        ) {
+            Spacer(modifier = Modifier.width(40.dp))
+            Text(
+                text = "Download",
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.width(40.dp))
+        }
+    }
 }
+
+//@Composable
+//@FontScalePreview
+//@DevicePreview
+//fun CreateTicketScreenPreview() {
+//    val navController = rememberNavController()
+//    CreateTicketScreen(navController = navController, {})
+//}
+
 
 @Composable
 @FontScalePreview
 @DevicePreview
-fun TicketsListScreenPreview() {
+fun TicketDetailsScreenPreview() {
     val navController = rememberNavController()
-    val ticketState = TicketState()
-    TicketsList(navController = navController, onEvent = {}, ticketState, ticketState)
+    val ticketDetails = TicketDetails(
+        ticketType = "opening",
+        Name = "Max",
+        Picture = null,
+        Time = generateDate(),
+        Seat = "A2 Seat 1",
+        order_id = 0
+    )
+    TicketDetailsScreen(navController = navController, onEvent = {}, stateDetails = ticketDetails)
 }
 
