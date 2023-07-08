@@ -1,19 +1,12 @@
 package com.example.wss_mock_app
 
-import android.graphics.drawable.PaintDrawable
+import android.content.Context
 import android.net.Uri
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import java.util.Calendar
-import java.util.Date
 
 @Dao
 interface TicketDao{
@@ -36,7 +29,7 @@ interface TicketDao{
 sealed interface TicketEvent {
     object SaveTicket: TicketEvent
     data class SetName(val Name: String): TicketEvent
-    data class SetPicture(val Picture: Uri): TicketEvent
+    data class SetPicture(val Picture: Uri, val context: Context): TicketEvent
     data class SetTicketType(val ticketType: String): TicketEvent
     object ShowDialog: TicketEvent
     object HideDialog: TicketEvent
@@ -48,5 +41,5 @@ data class TicketState(
     val tickets: List<TicketDetails> = emptyList(),
     val ticketType: String = "",
     val Name: String = "",
-    val Picture: String = ""
+    val Picture: ByteArray? = null
 )

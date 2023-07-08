@@ -2,6 +2,7 @@ package com.example.wss_mock_app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -231,7 +232,8 @@ fun CreateTicketScreen(
         var imageUri by remember { mutableStateOf<Uri?>(null) }
         val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = { uri -> imageUri = uri }
+            onResult = { uri ->
+                imageUri = uri }
         )
         Button(
             onClick = {
@@ -283,7 +285,7 @@ fun CreateTicketScreen(
                     Log.d("TicketCreateScreen", selectedTicketType)
                     onEvent(TicketEvent.SetName(userName.text))
                     onEvent(TicketEvent.SetTicketType(selectedTicketType))
-                    onEvent(TicketEvent.SetPicture(imageUri!!))
+                    onEvent(TicketEvent.SetPicture(imageUri!!, context))
                     onEvent(TicketEvent.SaveTicket)
                     navController.navigate("ticketList")
                 }
@@ -337,10 +339,9 @@ fun LazyListScope.openingTickets(
                     )
 
                 }
-                val imageUri = Uri.parse(opening_ticket.Picture)
-                Log.d("TicketList", opening_ticket.Picture)
+                val byteArray = opening_ticket.Picture?.let { BitmapFactory.decodeByteArray(opening_ticket.Picture, 0, it.size) }
                 AsyncImage(
-                    model = imageUri,
+                    model = byteArray,
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -382,9 +383,9 @@ fun LazyListScope.closingTickets(
                     )
 
                 }
-                val imageUri = Uri.parse(closing_ticket.Picture)
+                val byteArray = closing_ticket.Picture?.let { BitmapFactory.decodeByteArray(closing_ticket.Picture, 0, it.size) }
                 AsyncImage(
-                    model = imageUri,
+                    model = byteArray,
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
