@@ -73,7 +73,8 @@ fun TicketsList(
     navController: NavController,
     onEvent: (TicketEvent) -> Unit,
     stateOpening: TicketState,
-    stateClosing: TicketState
+    stateClosing: TicketState,
+    onNavigateToTicketDetails: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -118,7 +119,7 @@ fun TicketsList(
                 textAlign = TextAlign.Center
             )
         }
-        openingTickets(onEvent = onEvent, ticketState = stateOpening)
+        openingTickets(onEvent = onEvent, ticketState = stateOpening, onNavigateToTicketDetails)
         item {
             Text(
                 text = "Closing Ceremony Tickets",
@@ -129,7 +130,7 @@ fun TicketsList(
                 textAlign = TextAlign.Center
             )
         }
-        closingTickets(onEvent, stateClosing)
+        closingTickets(onEvent, stateClosing, onNavigateToTicketDetails)
     }
 }
 
@@ -317,17 +318,19 @@ fun CreateTicketScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.openingTickets(
     onEvent: (TicketEvent) -> Unit,
-    ticketState: TicketState
+    ticketState: TicketState,
+    onNavigateToTicketDetails: (String) -> Unit
 ) {
     onEvent(TicketEvent.SortTickets("opening"))
     items(ticketState.tickets) { opening_ticket ->
+        val id = opening_ticket.id
         Card(
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 4.dp
             ),
             modifier = Modifier.padding(8.dp),
             onClick = ({
-
+                onNavigateToTicketDetails("$id")
             })
         ) {
             Row(
@@ -368,17 +371,23 @@ fun LazyListScope.openingTickets(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.closingTickets(
     onEvent: (TicketEvent) -> Unit,
-    ticketState: TicketState
+    ticketState: TicketState,
+    onNavigateToTicketDetails: (String) -> Unit
 ) {
     onEvent(TicketEvent.SortTickets("closing"))
     items(ticketState.tickets) { closing_ticket ->
+        val id = closing_ticket.id
         Card(
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 4.dp
             ),
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(8.dp),
+            onClick = ({
+                onNavigateToTicketDetails("$id")
+            })
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -422,9 +431,10 @@ fun LazyListScope.closingTickets(
 fun TicketDetailsScreen(
     navController: NavController,
     onEvent: (TicketEvent) -> Unit,
-    stateDetails: TicketDetails?
+    stateDetails: TicketState,
+    ticketId: Int
 ) {
-    onEvent(TicketEvent.GetTicket(1,"opening"))
+    onEvent(TicketEvent.GetTicket(ticketId))
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -441,33 +451,34 @@ fun TicketDetailsScreen(
         )
         Card(
             modifier = Modifier
-                .padding(60.dp, 0.dp, 60.dp, 20.dp)
+                .padding(60.dp, 0.dp, 60.dp, 10.dp)
                 .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
                 .background(Color.White),
             shape = RectangleShape,
             border = BorderStroke(1.dp, Color.Black)
         ) {
-            val byteArray = stateDetails?.Picture?.let {
+            val byteArray = stateDetails.Picture?.let {
                 BitmapFactory.decodeByteArray(
                     stateDetails.Picture,
                     0,
                     it.size
                 )
             }
+            Log.d("Ticket Detail Screen", "Picture: $byteArray")
             AsyncImage(
                 model = byteArray,
                 contentDescription = "Ticket Picture",
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(0.dp,0.dp,0.dp,20.dp)
+                    .padding(0.dp, 0.dp, 0.dp, 20.dp)
                     .fillMaxWidth()
                     .height(175.dp)
                     .background(Color.LightGray),
                 contentScale = ContentScale.Crop
             )
             var type by remember { (mutableStateOf("")) }
-            type = if (stateDetails!!.ticketType == "opening") {
+            type = if (stateDetails.ticketType == "opening") {
                 "Opening Ceremony"
             } else {
                 "Closing Ceremony"
@@ -481,7 +492,7 @@ fun TicketDetailsScreen(
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp,5.dp,0.dp,0.dp)
+                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
             )
             Text(
                 text = "Audience's Name: $name",
@@ -489,7 +500,7 @@ fun TicketDetailsScreen(
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp,5.dp,0.dp,0.dp)
+                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
             )
             Text(
                 text = "Time: $time",
@@ -497,7 +508,7 @@ fun TicketDetailsScreen(
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp,5.dp,0.dp,0.dp)
+                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
             )
             Text(
                 text = "Seat: $seat",
@@ -505,7 +516,7 @@ fun TicketDetailsScreen(
                 textAlign = TextAlign.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp,5.dp,0.dp,100.dp)
+                    .padding(10.dp, 5.dp, 0.dp, 70.dp)
             )
         }
         Button(
@@ -513,7 +524,7 @@ fun TicketDetailsScreen(
                 TODO()
             },
             modifier = Modifier
-                .padding(50.dp, 0.dp, 50.dp, 40.dp)
+                .padding(50.dp, 0.dp, 50.dp, 10.dp)
                 .align(Alignment.CenterHorizontally)
                 .fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
@@ -548,14 +559,18 @@ fun TicketDetailsScreen(
 @DevicePreview
 fun TicketDetailsScreenPreview() {
     val navController = rememberNavController()
-    val ticketDetails = TicketDetails(
+    val ticketDetails = TicketState(
         ticketType = "opening",
         Name = "Max",
         Picture = null,
         Time = generateDate(),
-        Seat = "A2 Seat 1",
-        order_id = 0
+        Seat = "A2 Seat 1"
     )
-    TicketDetailsScreen(navController = navController, onEvent = {}, stateDetails = ticketDetails)
+    TicketDetailsScreen(
+        navController = navController,
+        onEvent = {},
+        stateDetails = ticketDetails,
+        1
+    )
 }
 

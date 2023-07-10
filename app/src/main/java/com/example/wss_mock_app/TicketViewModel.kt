@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -23,6 +25,7 @@ class TicketViewModel(
     private val dao: TicketDao
 ) : ViewModel() {
     private val _sortType = MutableStateFlow("")
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _tickets = _sortType
         .flatMapLatest { sortType ->
@@ -84,7 +87,18 @@ class TicketViewModel(
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
-    val currentTicket = MutableStateFlow<TicketDetails?>(null)
+    private val _ticketDetails = MutableStateFlow(TicketState())
+
+    val currentTicket = combine(_ticketDetails,_state){ ticketDetails, state ->
+        state.copy(
+            ticketType = ticketDetails.ticketType,
+            Name = ticketDetails.Name,
+            Seat = ticketDetails.Seat,
+            Time = ticketDetails.Time,
+            Picture = ticketDetails.Picture,
+            id = state.id
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
     fun onEvent(event: TicketEvent) {
         when (event) {
@@ -167,8 +181,17 @@ class TicketViewModel(
 
             is TicketEvent.GetTicket -> {
                 viewModelScope.launch {
-                    val ticket = dao.getTicketDetails(event.ticketId,event.ticketType)
-                    currentTicket.value = ticket
+                    val ticketDetails = withContext(Dispatchers.IO) {
+                        dao.getTicketDetails(event.ticketId)
+                    }
+                    withContext(Dispatchers.Main) {
+                        currentTicket.value.Name = ticketDetails.Name
+                        currentTicket.value.ticketType = ticketDetails.ticketType
+                        currentTicket.value.Seat = ticketDetails.Seat
+                        currentTicket.value.Time = ticketDetails.Time
+                        currentTicket.value.id = ticketDetails.id
+                        currentTicket.value.Picture = ticketDetails.Picture
+                    }
                 }
             }
         }

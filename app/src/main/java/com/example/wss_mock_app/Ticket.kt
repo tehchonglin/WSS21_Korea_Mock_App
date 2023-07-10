@@ -25,8 +25,8 @@ interface TicketDao{
     @Query("UPDATE ticket_details SET order_id = :newOrderIndex WHERE id = :ticketId")
     fun updateOrderIndex(ticketId: Int, newOrderIndex: Int)
 
-    @Query("SELECT * FROM ticket_details WHERE ticketType = :ticketType AND id = :ticketId")
-    fun getTicketDetails(ticketId: Int, ticketType: String) : TicketDetails
+    @Query("SELECT * FROM ticket_details WHERE id = :ticketId")
+    fun getTicketDetails(ticketId: Int) : TicketDetails
 }
 
 sealed interface TicketEvent {
@@ -38,12 +38,15 @@ sealed interface TicketEvent {
     object HideDialog: TicketEvent
     data class SortTickets(val sortType: String): TicketEvent
     data class DeleteTickets(val ticketDetails: TicketDetails): TicketEvent
-    data class GetTicket(val ticketId: Int, val ticketType: String): TicketEvent
+    data class GetTicket(val ticketId: Int): TicketEvent
 }
 
 data class TicketState(
     val tickets: List<TicketDetails> = emptyList(),
-    val ticketType: String = "",
-    val Name: String = "",
-    val Picture: ByteArray? = null
+    var ticketType: String = "",
+    var Name: String = "",
+    var Picture: ByteArray? = null,
+    var Time: String = "",
+    var Seat: String = "",
+    var id: Int = 0
 )

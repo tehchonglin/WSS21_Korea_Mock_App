@@ -4,6 +4,7 @@ package com.example.wss_mock_app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -65,8 +66,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     )
-
-
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,7 +117,7 @@ fun Navigation(
     navController: NavHostController,
     stateOpening: TicketState,
     stateClosing: TicketState,
-    stateDetails: TicketDetails?,
+    stateDetails: TicketState,
     onEvent: (TicketEvent) -> Unit
 ) {
     NavHost(navController = navController, startDestination = "Events") {
@@ -349,7 +348,7 @@ fun EventsScreen() {
 fun TicketsScreen(
     stateOpening: TicketState,
     stateClosing: TicketState,
-    stateDetails: TicketDetails?,
+    stateDetails: TicketState,
     onEvent: (TicketEvent) -> Unit
 ) {
     Box(
@@ -365,16 +364,27 @@ fun TicketsScreen(
                     navController = navController,
                     onEvent = onEvent,
                     stateOpening,
-                    stateClosing
+                    stateClosing,
+                    onNavigateToTicketDetails = {
+                        Log.d("Ticket List", "ticketDetails/$it")
+                        navController.navigate("ticketDetails/$it")
+                    }
                 )
+            }
+            composable(
+                route = "ticketDetails/{ticket_id}",
+                arguments = listOf(
+                navArgument("ticket_id"){
+                    type = NavType.IntType
+                }
+                )){
+                val id = it.arguments?.getInt("ticket_id") ?: ""
+                Log.d("Path", "ID: $id")
+                TicketDetailsScreen(navController, onEvent, stateDetails, id as Int)
             }
             composable("createTicket") {
                 CreateTicketScreen(navController, onEvent)
             }
-            composable("ticketDetails/{ticket_id}"){
-                TicketDetailsScreen(navController, onEvent, stateDetails)
-            }
-
         }
     }
 }
