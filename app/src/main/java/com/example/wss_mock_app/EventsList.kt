@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.navigation.NavController
+import com.example.wss_mock_app.data.EventDetails
 
 @Composable
 fun EventsList(
@@ -152,7 +153,8 @@ fun DetailsScreen(event: EventDetails) {
 
 @Composable
 @FontScalePreview
-@DevicePreview
+@PixelCPreview
+@Pixel2Preview
 fun DetailsScreenPreview() {
     val event =
         EventDetails(

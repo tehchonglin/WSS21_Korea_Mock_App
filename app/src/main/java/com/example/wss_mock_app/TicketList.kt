@@ -2,8 +2,12 @@ package com.example.wss_mock_app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
+import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,7 +54,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -62,10 +68,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.example.wss_mock_app.data.TicketEvent
+import com.example.wss_mock_app.data.TicketState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.smarttoolfactory.screenshot.ScreenshotBox
+import com.smarttoolfactory.screenshot.ScreenshotState
+import com.smarttoolfactory.screenshot.rememberScreenshotState
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import java.io.OutputStream
 
 
 @Composable
@@ -150,8 +163,7 @@ fun CreateTicketScreen(
     val multiplePermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_MEDIA_AUDIO
+            Manifest.permission.READ_MEDIA_VIDEO
         )
     )
     Column(
@@ -287,7 +299,6 @@ fun CreateTicketScreen(
                 if (!(imageUri != null && selectedTicketType != "" && userName.text != "")) {
                     Toast.makeText(context, "Please fill in the blanks", Toast.LENGTH_LONG).show()
                 } else {
-                    Log.d("TicketCreateScreen", selectedTicketType)
                     onEvent(TicketEvent.SetName(userName.text))
                     onEvent(TicketEvent.SetTicketType(selectedTicketType))
                     onEvent(TicketEvent.SetPicture(imageUri!!, context))
@@ -429,12 +440,23 @@ fun LazyListScope.closingTickets(
 
 @Composable
 fun TicketDetailsScreen(
-    navController: NavController,
     onEvent: (TicketEvent) -> Unit,
     stateDetails: TicketState,
     ticketId: Int
 ) {
+    val screenshotState = rememberScreenshotState()
     onEvent(TicketEvent.GetTicket(ticketId))
+    var type by remember { (mutableStateOf("")) }
+    type = if (stateDetails.ticketType == "opening") {
+        "Opening Ceremony"
+    } else {
+        "Closing Ceremony"
+    }
+    val name = stateDetails.Name
+    val time = stateDetails.Time
+    val seat = stateDetails.Seat
+    val context = LocalContext.current
+    var imageBitmap by remember { mutableStateOf<Bitmap?>(null)}
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -449,79 +471,84 @@ fun TicketDetailsScreen(
                 .padding(0.dp, 40.dp)
                 .fillMaxWidth()
         )
-        Card(
+        ScreenshotBox(
+            screenshotState = screenshotState,
             modifier = Modifier
                 .padding(60.dp, 0.dp, 60.dp, 10.dp)
                 .align(Alignment.CenterHorizontally)
                 .fillMaxWidth()
-                .background(Color.White),
-            shape = RectangleShape,
-            border = BorderStroke(1.dp, Color.Black)
         ) {
-            val byteArray = stateDetails.Picture?.let {
-                BitmapFactory.decodeByteArray(
-                    stateDetails.Picture,
-                    0,
-                    it.size
-                )
-            }
-            Log.d("Ticket Detail Screen", "Picture: $byteArray")
-            AsyncImage(
-                model = byteArray,
-                contentDescription = "Ticket Picture",
+            Card(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(0.dp, 0.dp, 0.dp, 20.dp)
                     .fillMaxWidth()
-                    .height(175.dp)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
-            var type by remember { (mutableStateOf("")) }
-            type = if (stateDetails.ticketType == "opening") {
-                "Opening Ceremony"
-            } else {
-                "Closing Ceremony"
+                    .background(Color.White),
+                shape = RectangleShape,
+                border = BorderStroke(1.dp, Color.Black)
+            ) {
+                val byteArray = stateDetails.Picture?.let {
+                    BitmapFactory.decodeByteArray(
+                        stateDetails.Picture,
+                        0,
+                        it.size
+                    )
+                }
+                AsyncImage(
+                    model = byteArray,
+                    contentDescription = "Ticket Picture",
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(0.dp, 0.dp, 0.dp, 20.dp)
+                        .fillMaxWidth()
+                        .height(175.dp)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    text = "Ticket Type: $type",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp, 5.dp, 0.dp, 0.dp)
+                )
+                Text(
+                    text = "Audience's Name: $name",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp, 5.dp, 0.dp, 0.dp)
+                )
+                Text(
+                    text = "Time: $time",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp, 5.dp, 0.dp, 0.dp)
+                )
+                Text(
+                    text = "Seat: $seat",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp, 5.dp, 0.dp, 70.dp)
+                )
             }
-            val name = stateDetails.Name
-            val time = stateDetails.Time
-            val seat = stateDetails.Seat
-            Text(
-                text = "Ticket Type: $type",
-                fontSize = 15.sp,
-                textAlign = TextAlign.Start,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
-            )
-            Text(
-                text = "Audience's Name: $name",
-                fontSize = 15.sp,
-                textAlign = TextAlign.Start,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
-            )
-            Text(
-                text = "Time: $time",
-                fontSize = 15.sp,
-                textAlign = TextAlign.Start,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp, 5.dp, 0.dp, 0.dp)
-            )
-            Text(
-                text = "Seat: $seat",
-                fontSize = 15.sp,
-                textAlign = TextAlign.Start,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp, 5.dp, 0.dp, 70.dp)
-            )
+        }
+        LaunchedEffect(Unit) {
+            screenshotState.liveScreenshotFlow
+                .onEach { bitmap: ImageBitmap ->
+                    imageBitmap = bitmap.asAndroidBitmap()
+                }
+                .launchIn(this)
         }
         Button(
             onClick = {
-                TODO()
+                screenshotState.capture()
+                saveScreenshot(screenshotState, context)
             },
             modifier = Modifier
                 .padding(50.dp, 0.dp, 50.dp, 10.dp)
@@ -545,9 +572,54 @@ fun TicketDetailsScreen(
     }
 }
 
+@SuppressLint("LogConditional")
+fun saveScreenshot(screenshotState: ScreenshotState, context: Context) {
+    screenshotState.bitmap?.let { saveImage(it, context) }
+    var message = "Image not saved"
+    if (screenshotState.bitmap != null){
+        message = "Image saved"
+    }
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    Log.d("Saving Ticket", screenshotState.bitmap.toString())
+}
+
+private fun saveImage(bitmap: Bitmap, context: Context) {
+    val values = contentValues()
+    values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures")
+    values.put(MediaStore.Images.Media.IS_PENDING, true)
+    val uri: Uri? =
+        context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+    if (uri != null) {
+        saveImageToStream(bitmap, context.contentResolver.openOutputStream(uri))
+        values.put(MediaStore.Images.Media.IS_PENDING, false)
+        context.contentResolver.update(uri, values, null, null)
+    }
+}
+
+private fun contentValues(): ContentValues {
+    val values = ContentValues()
+    values.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+    values.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+    values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+    return values
+}
+
+private fun saveImageToStream(bitmap: Bitmap, outputStream: OutputStream?) {
+    if (outputStream != null) {
+        try {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            outputStream.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+
 //@Composable
 //@FontScalePreview
-//@DevicePreview
+//@Pixel2Preview
+//@PixelCPreview
 //fun CreateTicketScreenPreview() {
 //    val navController = rememberNavController()
 //    CreateTicketScreen(navController = navController, {})
@@ -556,9 +628,9 @@ fun TicketDetailsScreen(
 
 @Composable
 @FontScalePreview
-@DevicePreview
+@Pixel2Preview
+@PixelCPreview
 fun TicketDetailsScreenPreview() {
-    val navController = rememberNavController()
     val ticketDetails = TicketState(
         ticketType = "opening",
         Name = "Max",
@@ -567,7 +639,6 @@ fun TicketDetailsScreenPreview() {
         Seat = "A2 Seat 1"
     )
     TicketDetailsScreen(
-        navController = navController,
         onEvent = {},
         stateDetails = ticketDetails,
         1

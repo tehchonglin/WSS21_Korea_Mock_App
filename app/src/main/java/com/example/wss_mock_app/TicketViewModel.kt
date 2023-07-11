@@ -7,6 +7,10 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.wss_mock_app.data.TicketDao
+import com.example.wss_mock_app.data.TicketDetails
+import com.example.wss_mock_app.data.TicketEvent
+import com.example.wss_mock_app.data.TicketState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,27 +28,7 @@ import java.util.Calendar
 class TicketViewModel(
     private val dao: TicketDao
 ) : ViewModel() {
-    private val _sortType = MutableStateFlow("")
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val _tickets = _sortType
-        .flatMapLatest { sortType ->
-            when (sortType) {
-                "opening" -> dao.getOpeningTicketsOrderedByID()
-                "closing" -> dao.getClosingTicketsOrderedByID()
-                else -> {
-                    dao.getOpeningTicketsOrderedByID()
-                }
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     private val _state = MutableStateFlow(TicketState())
-    val state = combine(_state, _sortType, _tickets) { state, sortType, tickets ->
-        state.copy(
-            tickets = tickets,
-            ticketType = sortType
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
     // Sort state for tickets opening
     private val _sortTypeOpening = MutableStateFlow("opening")
@@ -107,8 +91,6 @@ class TicketViewModel(
                     dao.deleteTicket(event.ticketDetails)
                 }
             }
-
-            TicketEvent.HideDialog -> TODO()
             TicketEvent.SaveTicket -> {
                 val name = _state.value.Name
                 val picture = _state.value.Picture
@@ -147,8 +129,6 @@ class TicketViewModel(
                     }
                 }
             }
-
-            TicketEvent.ShowDialog -> TODO()
             is TicketEvent.SortTickets -> {
                 if (event.sortType == "opening") {
                     _sortTypeOpening.value = event.sortType

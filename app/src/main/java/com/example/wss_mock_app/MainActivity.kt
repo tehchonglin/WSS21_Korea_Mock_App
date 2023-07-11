@@ -2,9 +2,9 @@
 
 package com.example.wss_mock_app
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -36,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -47,6 +48,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
+import com.example.wss_mock_app.data.EventDetails
+import com.example.wss_mock_app.data.TicketDatabase
+import com.example.wss_mock_app.data.TicketEvent
+import com.example.wss_mock_app.data.TicketState
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -69,6 +74,13 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.READ_MEDIA_AUDIO,
+            Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.READ_MEDIA_IMAGES),
+            0
+        )
         setContent {
             WSS_Mock_AppTheme {
                 val stateOpening by viewModel.stateOpening.collectAsState()
@@ -366,7 +378,6 @@ fun TicketsScreen(
                     stateOpening,
                     stateClosing,
                     onNavigateToTicketDetails = {
-                        Log.d("Ticket List", "ticketDetails/$it")
                         navController.navigate("ticketDetails/$it")
                     }
                 )
@@ -379,8 +390,7 @@ fun TicketsScreen(
                 }
                 )){
                 val id = it.arguments?.getInt("ticket_id") ?: ""
-                Log.d("Path", "ID: $id")
-                TicketDetailsScreen(navController, onEvent, stateDetails, id as Int)
+                TicketDetailsScreen(onEvent, stateDetails, id as Int)
             }
             composable("createTicket") {
                 CreateTicketScreen(navController, onEvent)

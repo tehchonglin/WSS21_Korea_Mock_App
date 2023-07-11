@@ -1,12 +1,7 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.data
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.MediaStore
 import androidx.room.TypeConverter
-import java.io.ByteArrayOutputStream
 
 class Converters{
     @TypeConverter

@@ -1,4 +1,4 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.data
 
 import android.content.Context
 import android.net.Uri
@@ -34,8 +34,6 @@ sealed interface TicketEvent {
     data class SetName(val Name: String): TicketEvent
     data class SetPicture(val Picture: Uri, val context: Context): TicketEvent
     data class SetTicketType(val ticketType: String): TicketEvent
-    object ShowDialog: TicketEvent
-    object HideDialog: TicketEvent
     data class SortTickets(val sortType: String): TicketEvent
     data class DeleteTickets(val ticketDetails: TicketDetails): TicketEvent
     data class GetTicket(val ticketId: Int): TicketEvent
