@@ -105,8 +105,7 @@ class TicketViewModel(
                     name,
                     picture,
                     generateDate(),
-                    generateSeat(),
-                    0
+                    generateSeat()
                 )
                 viewModelScope.launch {
                     dao.upsertTicket(ticket)
@@ -198,7 +197,6 @@ fun generateSeat(): String {
     return "A2 SEAT 1"
 }
 
-//TODO: Make algorithm to generate date
 @SuppressLint("SimpleDateFormat")
 fun generateDate(): String {
     val time = Calendar.getInstance().time

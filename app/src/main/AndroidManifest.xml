@@ -10,9 +10,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/world_skills_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/world_skills_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.WSS_Mock_App"
         >
@@ -20,7 +20,7 @@
             android:name="com.example.wss_mock_app.MainActivity"
             android:exported="true"
             android:label="@string/title_activity_main"
-            android:theme="@style/Theme.WSS_Mock_App">
+            android:theme="@style/Theme.MyApp.WSS_Mock_App">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

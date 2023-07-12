@@ -21,7 +21,6 @@ data class TicketDetails(
     val Picture: ByteArray?,
     val Time: String,
     val Seat: String,
-    val order_id: Int,
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0
 )

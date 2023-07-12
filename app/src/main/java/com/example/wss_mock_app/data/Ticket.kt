@@ -22,9 +22,6 @@ interface TicketDao{
     @Query("SELECT * FROM ticket_details WHERE ticketType = 'opening' ORDER BY id ASC")
     fun getOpeningTicketsOrderedByID(): Flow<List<TicketDetails>>
 
-    @Query("UPDATE ticket_details SET order_id = :newOrderIndex WHERE id = :ticketId")
-    fun updateOrderIndex(ticketId: Int, newOrderIndex: Int)
-
     @Query("SELECT * FROM ticket_details WHERE id = :ticketId")
     fun getTicketDetails(ticketId: Int) : TicketDetails
 }

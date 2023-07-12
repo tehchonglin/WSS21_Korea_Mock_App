@@ -78,7 +78,6 @@ import com.smarttoolfactory.screenshot.ScreenshotState
 import com.smarttoolfactory.screenshot.rememberScreenshotState
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import java.io.OutputStream
 
 
 @Composable
@@ -455,6 +454,7 @@ fun TicketDetailsScreen(
     val name = stateDetails.Name
     val time = stateDetails.Time
     val seat = stateDetails.Seat
+    val fileName = "$name-$seat-$time"
     val context = LocalContext.current
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null)}
     Column(
@@ -548,7 +548,7 @@ fun TicketDetailsScreen(
         Button(
             onClick = {
                 screenshotState.capture()
-                saveScreenshot(screenshotState, context)
+                saveScreenshot(screenshotState, context, fileName)
             },
             modifier = Modifier
                 .padding(50.dp, 0.dp, 50.dp, 10.dp)
@@ -573,8 +573,8 @@ fun TicketDetailsScreen(
 }
 
 @SuppressLint("LogConditional")
-fun saveScreenshot(screenshotState: ScreenshotState, context: Context) {
-    screenshotState.bitmap?.let { saveImage(it, context) }
+fun saveScreenshot(screenshotState: ScreenshotState, context: Context, fileName: String) {
+    screenshotState.bitmap?.let { saveImage(it, context, fileName) }
     var message = "Image not saved"
     if (screenshotState.bitmap != null){
         message = "Image saved"
@@ -583,35 +583,28 @@ fun saveScreenshot(screenshotState: ScreenshotState, context: Context) {
     Log.d("Saving Ticket", screenshotState.bitmap.toString())
 }
 
-private fun saveImage(bitmap: Bitmap, context: Context) {
-    val values = contentValues()
-    values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures")
-    values.put(MediaStore.Images.Media.IS_PENDING, true)
-    val uri: Uri? =
-        context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-    if (uri != null) {
-        saveImageToStream(bitmap, context.contentResolver.openOutputStream(uri))
-        values.put(MediaStore.Images.Media.IS_PENDING, false)
-        context.contentResolver.update(uri, values, null, null)
-    }
-}
-
-private fun contentValues(): ContentValues {
+private fun saveImage(bitmap: Bitmap, context: Context, fileName: String) {
     val values = ContentValues()
     values.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
     values.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
     values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
-    return values
-}
-
-private fun saveImageToStream(bitmap: Bitmap, outputStream: OutputStream?) {
-    if (outputStream != null) {
-        try {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            outputStream.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
+    values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures")
+    values.put(MediaStore.Images.Media.IS_PENDING, true)
+    values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+    val uri: Uri? =
+        context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+    if (uri != null) {
+        val outputStream = context.contentResolver.openOutputStream(uri)
+        if (outputStream != null) {
+            try {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                outputStream.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
+        values.put(MediaStore.Images.Media.IS_PENDING, false)
+        context.contentResolver.update(uri, values, null, null)
     }
 }
 
