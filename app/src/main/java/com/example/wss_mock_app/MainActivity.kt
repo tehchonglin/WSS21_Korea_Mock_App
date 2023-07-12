@@ -4,20 +4,28 @@ package com.example.wss_mock_app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -32,7 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,11 +60,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
+import com.example.wss_mock_app.audio.AndroidAudioPlayer
+import com.example.wss_mock_app.audio.AndroidAudioRecorder
 import com.example.wss_mock_app.data.EventDetails
 import com.example.wss_mock_app.data.TicketDatabase
 import com.example.wss_mock_app.data.TicketEvent
 import com.example.wss_mock_app.data.TicketState
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     private val db by lazy {
@@ -72,15 +86,24 @@ class MainActivity : ComponentActivity() {
             }
         }
     )
+    private val recorder by lazy {
+        AndroidAudioRecorder(applicationContext)
+    }
+    private val player by lazy {
+        AndroidAudioPlayer(applicationContext)
+    }
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installSplashScreen()
         ActivityCompat.requestPermissions(
             this,
-            arrayOf(Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_MEDIA_IMAGES),
+            arrayOf(
+                Manifest.permission.READ_MEDIA_AUDIO,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ),
             0
         )
         setContent {
@@ -119,20 +142,23 @@ class MainActivity : ComponentActivity() {
                         stateOpening,
                         stateClosing,
                         stateDetails,
-                        viewModel::onEvent
+                        viewModel::onEvent,
+                        applicationContext
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 fun Navigation(
     navController: NavHostController,
     stateOpening: TicketState,
     stateClosing: TicketState,
     stateDetails: TicketState,
-    onEvent: (TicketEvent) -> Unit
+    onEvent: (TicketEvent) -> Unit,
+    applicationContext: Context
 ) {
     NavHost(navController = navController, startDestination = "Events") {
         composable("Events") {
@@ -142,7 +168,7 @@ fun Navigation(
             TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent)
         }
         composable("Records") {
-            RecordsScreen()
+            RecordsScreen(applicationContext)
         }
     }
 }
@@ -387,10 +413,10 @@ fun TicketsScreen(
             composable(
                 route = "ticketDetails/{ticket_id}",
                 arguments = listOf(
-                navArgument("ticket_id"){
-                    type = NavType.IntType
-                }
-                )){
+                    navArgument("ticket_id") {
+                        type = NavType.IntType
+                    }
+                )) {
                 val id = it.arguments?.getInt("ticket_id") ?: ""
                 TicketDetailsScreen(onEvent, stateDetails, id as Int)
             }
@@ -403,11 +429,127 @@ fun TicketsScreen(
 
 
 @Composable
-fun RecordsScreen() {
+fun RecordsScreen(applicationContext: Context) {
+    val recorder by lazy {
+        AndroidAudioRecorder(applicationContext)
+    }
+    val player by lazy {
+        AndroidAudioPlayer(applicationContext)
+    }
+    var audioFile: File? = null
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Records Screen")
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Text(
+                text = "Records",
+                fontSize = 35.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 40.dp, 0.dp, 30.dp),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.SemiBold
+            )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp, 10.dp),
+                shape = RectangleShape
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                File(applicationContext.cacheDir, "audio.mp3").also {
+                                    recorder.start(it)
+                                    audioFile = it
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f),
+                            shape = RectangleShape
+                        ) {
+                            Text(text = "Voice Record")
+                        }
+                        Button(
+                            onClick = { /*TODO*/ },
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f),
+                            shape = RectangleShape
+                        ) {
+                            Text(text = "Voice Play")
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Spacer(modifier = Modifier.size(0.dp, 100.dp))
+                        Button(
+                            onClick = { /*TODO*/ },
+                            shape = RectangleShape
+                        ) {
+                            Text(
+                                text = "Submit",
+                                textAlign = TextAlign.End,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(0.dp, 0.dp, 10.dp, 0.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp, 30.dp),
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Audios List",
+                    modifier = Modifier.padding(10.dp),
+                    fontSize = 20.sp
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = CenterHorizontally
+                ) {
+                    items(5) {
+                        Card(modifier = Modifier.padding(5.dp, 10.dp)) {
+                            Row {
+                                Text(
+                                    text = "Audio $it",
+                                    fontSize = 15.sp,
+                                    modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp)
+                                )
+                                Icon(
+                                    painterResource(id = R.drawable.baseline_play_arrow_24),
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+@Composable
+@Pixel2Preview
+//@PixelCPreview
+@FontScalePreview
+fun RecordScreenPreview() {
+    RecordsScreen(LocalContext.current)
 }

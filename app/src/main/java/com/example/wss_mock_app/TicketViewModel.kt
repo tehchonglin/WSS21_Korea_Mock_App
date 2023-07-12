@@ -73,7 +73,7 @@ class TicketViewModel(
 
     private val _ticketDetails = MutableStateFlow(TicketState())
 
-    val currentTicket = combine(_ticketDetails,_state){ ticketDetails, state ->
+    val currentTicket = combine(_ticketDetails, _state) { ticketDetails, state ->
         state.copy(
             ticketType = ticketDetails.ticketType,
             Name = ticketDetails.Name,
@@ -91,6 +91,7 @@ class TicketViewModel(
                     dao.deleteTicket(event.ticketDetails)
                 }
             }
+
             TicketEvent.SaveTicket -> {
                 val name = _state.value.Name
                 val picture = _state.value.Picture
@@ -128,6 +129,7 @@ class TicketViewModel(
                     }
                 }
             }
+
             is TicketEvent.SortTickets -> {
                 if (event.sortType == "opening") {
                     _sortTypeOpening.value = event.sortType
