@@ -36,6 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -62,11 +65,15 @@ import androidx.navigation.navArgument
 import androidx.room.Room
 import com.example.wss_mock_app.audio.AndroidAudioPlayer
 import com.example.wss_mock_app.audio.AndroidAudioRecorder
+import com.example.wss_mock_app.data.AudioState
 import com.example.wss_mock_app.data.EventDetails
 import com.example.wss_mock_app.data.TicketDatabase
 import com.example.wss_mock_app.data.TicketEvent
 import com.example.wss_mock_app.data.TicketState
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -86,12 +93,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     )
-    private val recorder by lazy {
-        AndroidAudioRecorder(applicationContext)
-    }
-    private val player by lazy {
-        AndroidAudioPlayer(applicationContext)
-    }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -102,7 +103,8 @@ class MainActivity : ComponentActivity() {
             arrayOf(
                 Manifest.permission.READ_MEDIA_AUDIO,
                 Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_IMAGES
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.RECORD_AUDIO
             ),
             0
         )
@@ -111,6 +113,7 @@ class MainActivity : ComponentActivity() {
                 val stateOpening by viewModel.stateOpening.collectAsState()
                 val stateClosing by viewModel.stateClosing.collectAsState()
                 val stateDetails by viewModel.currentTicket.collectAsState()
+                val audioState by viewModel.audioState.collectAsState()
                 val navController = rememberNavController()
                 Scaffold(
                     bottomBar = {
@@ -143,7 +146,8 @@ class MainActivity : ComponentActivity() {
                         stateClosing,
                         stateDetails,
                         viewModel::onEvent,
-                        applicationContext
+                        applicationContext,
+                        audioState
                     )
                 }
             }
@@ -158,7 +162,8 @@ fun Navigation(
     stateClosing: TicketState,
     stateDetails: TicketState,
     onEvent: (TicketEvent) -> Unit,
-    applicationContext: Context
+    applicationContext: Context,
+    audioState: AudioState
 ) {
     NavHost(navController = navController, startDestination = "Events") {
         composable("Events") {
@@ -168,7 +173,7 @@ fun Navigation(
             TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent)
         }
         composable("Records") {
-            RecordsScreen(applicationContext)
+            RecordsScreen(applicationContext, audioState)
         }
     }
 }
@@ -428,8 +433,11 @@ fun TicketsScreen(
 }
 
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun RecordsScreen(applicationContext: Context) {
+fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
+    var playingState by remember { mutableStateOf("stopped") }
+    var recordingState by remember { mutableStateOf("stopped") }
     val recorder by lazy {
         AndroidAudioRecorder(applicationContext)
     }
@@ -437,6 +445,7 @@ fun RecordsScreen(applicationContext: Context) {
         AndroidAudioPlayer(applicationContext)
     }
     var audioFile: File? = null
+    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -468,9 +477,19 @@ fun RecordsScreen(applicationContext: Context) {
                     ) {
                         Button(
                             onClick = {
-                                File(applicationContext.cacheDir, "audio.mp3").also {
-                                    recorder.start(it)
-                                    audioFile = it
+                                if (permissionState.status.isGranted){
+                                    if (recordingState == "stopped") {
+                                        File(applicationContext.cacheDir, "audio.mp3").also {
+                                            recorder.start(it)
+                                            audioFile = it
+                                        }
+                                        recordingState = "recording"
+                                    } else {
+                                        recorder.stop()
+                                        recordingState = "stopped"
+                                    }
+                                } else{
+                                    permissionState.launchPermissionRequest()
                                 }
                             },
                             modifier = Modifier
@@ -480,7 +499,14 @@ fun RecordsScreen(applicationContext: Context) {
                             Text(text = "Voice Record")
                         }
                         Button(
-                            onClick = { /*TODO*/ },
+                            onClick = {
+                                if (playingState == "stopped") {
+                                    player.playFile(audioFile ?: return@Button)
+                                    playingState = "playing"
+                                } else {
+                                    player.stop()
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth(0.7f),
                             shape = RectangleShape
@@ -525,7 +551,7 @@ fun RecordsScreen(applicationContext: Context) {
                         .fillMaxWidth(),
                     horizontalAlignment = CenterHorizontally
                 ) {
-                    items(5) {
+                    items(audioState.id) {
                         Card(modifier = Modifier.padding(5.dp, 10.dp)) {
                             Row {
                                 Text(
@@ -551,5 +577,6 @@ fun RecordsScreen(applicationContext: Context) {
 //@PixelCPreview
 @FontScalePreview
 fun RecordScreenPreview() {
-    RecordsScreen(LocalContext.current)
+    val audioState = AudioState()
+    RecordsScreen(LocalContext.current, audioState)
 }

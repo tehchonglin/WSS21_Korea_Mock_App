@@ -3,6 +3,7 @@ package com.example.wss_mock_app.data
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.io.File
 
 data class EventDetails(
     val id: String,
@@ -21,6 +22,13 @@ data class TicketDetails(
     val Picture: ByteArray?,
     val Time: String,
     val Seat: String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0
+)
+
+@Entity (tableName = "audio")
+data class Audio(
+    val audio: File?,
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0
 )

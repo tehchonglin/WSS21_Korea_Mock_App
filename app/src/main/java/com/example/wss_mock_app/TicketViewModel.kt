@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.wss_mock_app.data.AudioState
 import com.example.wss_mock_app.data.TicketDao
 import com.example.wss_mock_app.data.TicketDetails
 import com.example.wss_mock_app.data.TicketEvent
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -71,18 +73,21 @@ class TicketViewModel(
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
-    private val _ticketDetails = MutableStateFlow(TicketState())
-
-    val currentTicket = combine(_ticketDetails, _state) { ticketDetails, state ->
-        state.copy(
-            ticketType = ticketDetails.ticketType,
-            Name = ticketDetails.Name,
-            Seat = ticketDetails.Seat,
-            Time = ticketDetails.Time,
-            Picture = ticketDetails.Picture,
-            id = state.id
-        )
+    val currentTicket = _state.map {
+        it.copy()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
+
+    private val _audioState = MutableStateFlow(AudioState())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _audioDetails = _audioState.flatMapLatest {
+        dao.getAudioFile()
+    }
+    val audioState = combine(_audioState, _audioDetails) { state, details ->
+        state.copy(
+            audioDetails = details
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AudioState())
+
 
     fun onEvent(event: TicketEvent) {
         when (event) {

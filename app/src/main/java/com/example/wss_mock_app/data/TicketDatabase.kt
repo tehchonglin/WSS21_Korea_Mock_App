@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [TicketDetails::class],
+    entities = [TicketDetails::class, Audio::class],
     version = 1,
     exportSchema = false
 )
