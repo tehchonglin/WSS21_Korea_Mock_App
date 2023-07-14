@@ -16,6 +16,7 @@
         android:roundIcon="@mipmap/world_skills_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.WSS_Mock_App"
+        android:enableOnBackInvokedCallback="true"
         >
         <activity
             android:name="com.example.wss_mock_app.MainActivity"

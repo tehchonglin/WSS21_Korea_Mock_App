@@ -7,20 +7,34 @@ import java.io.File
 
 class AndroidAudioPlayer(
     private val context: Context
-): AudioPlayer {
+) : AudioPlayer {
 
     private var player: MediaPlayer? = null
 
     override fun playFile(file: File) {
-        MediaPlayer.create(context, file.toUri()).apply {
-            player = this
+        stop()
+        player = player ?: MediaPlayer()
+        player?.apply {
+            setDataSource(context, file.toUri())
+            prepare()
             start()
+
+            setOnCompletionListener {
+                // This block will be executed when the audio finishes playing
+                stop()
+            }
         }
     }
 
     override fun stop() {
-        player?.stop()
-        player?.release()
+        player?.apply {
+            if (isPlaying) {
+                stop()
+            }
+            reset()
+            release()
+        }
         player = null
     }
+
 }

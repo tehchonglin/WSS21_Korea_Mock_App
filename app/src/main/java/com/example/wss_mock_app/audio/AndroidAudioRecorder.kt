@@ -5,33 +5,47 @@ import android.media.MediaRecorder
 import java.io.File
 import java.io.FileOutputStream
 
-class AndroidAudioRecorder(
-    private val context: Context
-) : AudioRecorder {
+class AndroidAudioRecorder(private val context: Context) : AudioRecorder {
 
     private var recorder: MediaRecorder? = null
 
     private fun createRecorder(): MediaRecorder {
-        return MediaRecorder(context)
-    }
-
-    override fun start(outputFile: File) {
-        createRecorder().apply {
+        val recorder = MediaRecorder(context).apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(FileOutputStream(outputFile).fd)
+        }
+        this.recorder = recorder
+        return recorder
+    }
+    override fun start(outputFile: File) {
+        // If an instance of the recorder already exists, we stop, reset and nullify it before creating a new one
+        stop()
+        val recorder = createRecorder()
+        recorder.setOutputFile(FileOutputStream(outputFile).fd)
 
-            prepare()
-            start()
-
-            recorder = this
+        recorder.apply {
+            try {
+                prepare()
+                start()
+            } catch (e: IllegalStateException) {
+                e.printStackTrace()
+                this@AndroidAudioRecorder.recorder = null
+            }
         }
     }
 
     override fun stop() {
-        recorder?.stop()
-        recorder?.reset()
-        recorder = null
+        recorder?.apply {
+            try {
+                stop()
+                reset()
+                release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                recorder = null
+            }
+        }
     }
 }

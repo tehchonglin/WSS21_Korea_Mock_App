@@ -477,18 +477,18 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                     ) {
                         Button(
                             onClick = {
-                                if (permissionState.status.isGranted){
-                                    if (recordingState == "stopped") {
+                                if (permissionState.status.isGranted) {
+                                    recordingState = if (recordingState == "stopped") {
                                         File(applicationContext.cacheDir, "audio.mp3").also {
                                             recorder.start(it)
                                             audioFile = it
                                         }
-                                        recordingState = "recording"
+                                        "recording"
                                     } else {
                                         recorder.stop()
-                                        recordingState = "stopped"
+                                        "stopped"
                                     }
-                                } else{
+                                } else {
                                     permissionState.launchPermissionRequest()
                                 }
                             },
@@ -496,22 +496,27 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                                 .fillMaxWidth(0.7f),
                             shape = RectangleShape
                         ) {
-                            Text(text = "Voice Record")
+                            val text =
+                                if (recordingState == "stopped") "Voice Recording" else "Stop Recording"
+                            Text(text = text)
                         }
                         Button(
                             onClick = {
-                                if (playingState == "stopped") {
+                                playingState = if (playingState == "stopped") {
                                     player.playFile(audioFile ?: return@Button)
-                                    playingState = "playing"
+                                    "playing"
                                 } else {
                                     player.stop()
+                                    "stopped"
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth(0.7f),
                             shape = RectangleShape
                         ) {
-                            Text(text = "Voice Play")
+                            val text =
+                                if (playingState == "stopped") "Voice Play" else "Stop playing"
+                            Text(text = text)
                         }
                     }
                     Column(
