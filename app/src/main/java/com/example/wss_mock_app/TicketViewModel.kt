@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.wss_mock_app.data.Audio
 import com.example.wss_mock_app.data.AudioState
 import com.example.wss_mock_app.data.TicketDao
 import com.example.wss_mock_app.data.TicketDetails
@@ -177,6 +178,31 @@ class TicketViewModel(
                         currentTicket.value.Time = ticketDetails.Time
                         currentTicket.value.id = ticketDetails.id
                         currentTicket.value.Picture = ticketDetails.Picture
+                    }
+                }
+            }
+
+            TicketEvent.SaveAudio -> {
+                val file = _audioState.value.audioFile
+                val audio = Audio(
+                    file
+                )
+                viewModelScope.launch {
+                    dao.upsertAudio(audio)
+                }
+                _audioState.update {
+                    it.copy(
+                        audioFile = ""
+                    )
+                }
+            }
+
+            is TicketEvent.SetFile -> {
+                viewModelScope.launch {
+                    _audioState.update {
+                        it.copy(
+                            audioFile = event.filePath
+                        )
                     }
                 }
             }

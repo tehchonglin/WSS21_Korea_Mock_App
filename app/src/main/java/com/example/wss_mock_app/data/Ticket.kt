@@ -7,7 +7,6 @@ import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import java.io.File
 
 @Dao
 interface TicketDao{
@@ -28,10 +27,15 @@ interface TicketDao{
 
     @Query("SELECT * FROM audio ORDER BY id ASC")
     fun getAudioFile(): Flow<List<Audio>>
+
+    @Upsert
+    suspend fun upsertAudio(audio: Audio)
 }
 
 sealed interface TicketEvent {
     object SaveTicket: TicketEvent
+    object SaveAudio: TicketEvent
+    data class SetFile(val filePath: String): TicketEvent
     data class SetName(val Name: String): TicketEvent
     data class SetPicture(val Picture: Uri, val context: Context): TicketEvent
     data class SetTicketType(val ticketType: String): TicketEvent
@@ -42,7 +46,7 @@ sealed interface TicketEvent {
 
 data class AudioState(
     val audioDetails: List<Audio> = emptyList(),
-    var audioFile: File? = null,
+    var audioFile: String = "",
     var id: Int = 0
     )
 

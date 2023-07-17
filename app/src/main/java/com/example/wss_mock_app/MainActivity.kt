@@ -4,8 +4,12 @@ package com.example.wss_mock_app
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Context
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.EventSeat
@@ -75,6 +80,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
     private val db by lazy {
@@ -173,7 +180,7 @@ fun Navigation(
             TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent)
         }
         composable("Records") {
-            RecordsScreen(applicationContext, audioState)
+            RecordsScreen(applicationContext, audioState, onEvent)
         }
     }
 }
@@ -435,14 +442,17 @@ fun TicketsScreen(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
-    var playingState by remember { mutableStateOf("stopped") }
+fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: (TicketEvent) -> Unit) {
     var recordingState by remember { mutableStateOf("stopped") }
+    var playingState by remember { mutableStateOf("stopped")}
+    var filePath by remember { mutableStateOf("")}
     val recorder by lazy {
         AndroidAudioRecorder(applicationContext)
     }
     val player by lazy {
-        AndroidAudioPlayer(applicationContext)
+        AndroidAudioPlayer(applicationContext){
+            playingState = "stopped"
+        }
     }
     var audioFile: File? = null
     val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
@@ -486,6 +496,7 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                                         "recording"
                                     } else {
                                         recorder.stop()
+                                        Log.d("Audio Status", audioFile.toString())
                                         "stopped"
                                     }
                                 } else {
@@ -502,12 +513,11 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                         }
                         Button(
                             onClick = {
-                                playingState = if (playingState == "stopped") {
+                                if(playingState == "stopped") {
                                     player.playFile(audioFile ?: return@Button)
-                                    "playing"
+                                    playingState = "playing"
                                 } else {
                                     player.stop()
-                                    "stopped"
                                 }
                             },
                             modifier = Modifier
@@ -525,7 +535,12 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                     ) {
                         Spacer(modifier = Modifier.size(0.dp, 100.dp))
                         Button(
-                            onClick = { /*TODO*/ },
+                            onClick = {
+                                audioFile?.let {
+                                    filePath = saveTemporaryFile(it, applicationContext) }
+                                onEvent(TicketEvent.SetFile(filePath))
+                                onEvent(TicketEvent.SaveAudio)
+                                      },
                             shape = RectangleShape
                         ) {
                             Text(
@@ -556,18 +571,31 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
                         .fillMaxWidth(),
                     horizontalAlignment = CenterHorizontally
                 ) {
-                    items(audioState.id) {
+                    items(audioState.audioDetails) {state ->
                         Card(modifier = Modifier.padding(5.dp, 10.dp)) {
+                            var buttonIcon by remember{ mutableStateOf(R.drawable.baseline_play_arrow_24)}
                             Row {
                                 Text(
-                                    text = "Audio $it",
+                                    text = "Audio ${state.id}",
                                     fontSize = 15.sp,
                                     modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp)
                                 )
-                                Icon(
-                                    painterResource(id = R.drawable.baseline_play_arrow_24),
-                                    contentDescription = null
-                                )
+                                Button(onClick = {
+                                    if(playingState == "stopped"){
+                                        val file = File(state.audio)
+                                        player.playFile(file)
+                                        playingState = "playing"
+                                    } else {
+                                        player.stop()
+                                    }
+                                }) {
+                                    buttonIcon = if (playingState == "stopped") R.drawable.baseline_pause_24 else R.drawable.baseline_play_arrow_24
+                                    Icon(
+                                        painterResource(id = buttonIcon),
+                                        contentDescription = null
+                                    )
+                                }
+
                             }
                         }
                     }
@@ -577,11 +605,28 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState) {
     }
 }
 
+fun saveTemporaryFile(file: File, applicationContext: Context): String{
+    val currentDateTime = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+    val fileName = "File_${currentDateTime.format(formatter)}"
+    val byteArray = file.readBytes()
+    val resolver = applicationContext.contentResolver
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+        put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
+        put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC)
+    }
+    val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+    resolver.openOutputStream(uri!!)?.use { it.write(byteArray) }
+    return uri.toString()
+}
+
 @Composable
 @Pixel2Preview
 //@PixelCPreview
 @FontScalePreview
 fun RecordScreenPreview() {
     val audioState = AudioState()
-    RecordsScreen(LocalContext.current, audioState)
+    audioState.id = 5
+    RecordsScreen(LocalContext.current, audioState, {})
 }
