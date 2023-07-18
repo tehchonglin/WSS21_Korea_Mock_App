@@ -6,6 +6,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
@@ -80,6 +81,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -442,15 +444,19 @@ fun TicketsScreen(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: (TicketEvent) -> Unit) {
+fun RecordsScreen(
+    applicationContext: Context,
+    audioState: AudioState,
+    onEvent: (TicketEvent) -> Unit
+) {
     var recordingState by remember { mutableStateOf("stopped") }
-    var playingState by remember { mutableStateOf("stopped")}
-    var filePath by remember { mutableStateOf("")}
+    var playingState by remember { mutableStateOf("stopped") }
+    var filePath by remember { mutableStateOf("") }
     val recorder by lazy {
         AndroidAudioRecorder(applicationContext)
     }
     val player by lazy {
-        AndroidAudioPlayer(applicationContext){
+        AndroidAudioPlayer(applicationContext) {
             playingState = "stopped"
         }
     }
@@ -513,7 +519,7 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: 
                         }
                         Button(
                             onClick = {
-                                if(playingState == "stopped") {
+                                if (playingState == "stopped") {
                                     player.playFile(audioFile ?: return@Button)
                                     playingState = "playing"
                                 } else {
@@ -537,10 +543,11 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: 
                         Button(
                             onClick = {
                                 audioFile?.let {
-                                    filePath = saveTemporaryFile(it, applicationContext) }
+                                    filePath = saveTemporaryFile(it, applicationContext)
+                                }
                                 onEvent(TicketEvent.SetFile(filePath))
                                 onEvent(TicketEvent.SaveAudio)
-                                      },
+                            },
                             shape = RectangleShape
                         ) {
                             Text(
@@ -571,9 +578,15 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: 
                         .fillMaxWidth(),
                     horizontalAlignment = CenterHorizontally
                 ) {
-                    items(audioState.audioDetails) {state ->
+                    items(audioState.audioDetails) { state ->
                         Card(modifier = Modifier.padding(5.dp, 10.dp)) {
-                            var buttonIcon by remember{ mutableStateOf(R.drawable.baseline_play_arrow_24)}
+                            var buttonIcon by remember { mutableStateOf(R.drawable.baseline_play_arrow_24) }
+                            var individualPlayingState by remember { mutableStateOf("stopped") }
+                            val individualPlayer by lazy {
+                                AndroidAudioPlayer(applicationContext) {
+                                    individualPlayingState = "stopped"
+                                }
+                            }
                             Row {
                                 Text(
                                     text = "Audio ${state.id}",
@@ -581,21 +594,22 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: 
                                     modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp)
                                 )
                                 Button(onClick = {
-                                    if(playingState == "stopped"){
-                                        val file = File(state.audio)
-                                        player.playFile(file)
-                                        playingState = "playing"
+                                    if (individualPlayingState == "stopped") {
+                                        val uri = Uri.parse(state.audio)
+                                        val file = uriToFile(uri, applicationContext)
+                                        individualPlayer.playFile(file)
+                                        individualPlayingState = "playing"
                                     } else {
-                                        player.stop()
+                                        individualPlayer.stop()
                                     }
                                 }) {
-                                    buttonIcon = if (playingState == "stopped") R.drawable.baseline_pause_24 else R.drawable.baseline_play_arrow_24
+                                    buttonIcon =
+                                        if (individualPlayingState == "stopped") R.drawable.baseline_play_arrow_24 else R.drawable.baseline_pause_24
                                     Icon(
                                         painterResource(id = buttonIcon),
                                         contentDescription = null
                                     )
                                 }
-
                             }
                         }
                     }
@@ -605,7 +619,7 @@ fun RecordsScreen(applicationContext: Context, audioState: AudioState, onEvent: 
     }
 }
 
-fun saveTemporaryFile(file: File, applicationContext: Context): String{
+fun saveTemporaryFile(file: File, applicationContext: Context): String {
     val currentDateTime = LocalDateTime.now()
     val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     val fileName = "File_${currentDateTime.format(formatter)}"
@@ -620,6 +634,18 @@ fun saveTemporaryFile(file: File, applicationContext: Context): String{
     resolver.openOutputStream(uri!!)?.use { it.write(byteArray) }
     return uri.toString()
 }
+
+fun uriToFile(uri: Uri, context: Context): File {
+    val destinationFile = File(context.cacheDir, "tempFile")
+    val inputStream = context.contentResolver.openInputStream(uri)
+    inputStream?.use { input ->
+        FileOutputStream(destinationFile).use { output ->
+            input.copyTo(output)
+        }
+    }
+    return destinationFile
+}
+
 
 @Composable
 @Pixel2Preview
