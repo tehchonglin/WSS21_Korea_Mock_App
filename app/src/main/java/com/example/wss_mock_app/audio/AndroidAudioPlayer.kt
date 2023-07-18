@@ -20,8 +20,7 @@ class AndroidAudioPlayer(
             prepare()
             start()
             setOnCompletionListener {
-                // This block will be executed when the audio finishes playing
-                stop()
+                onStoppedCallback.invoke()
             }
         }
     }
@@ -35,6 +34,5 @@ class AndroidAudioPlayer(
             release()
         }
         player = null
-        onStoppedCallback.invoke()
     }
 }
