@@ -1,10 +1,6 @@
 package com.example.wss_mock_app
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wss_mock_app.data.Audio
@@ -24,7 +20,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -103,7 +98,7 @@ class TicketViewModel(
                 val picture = _state.value.Picture
                 val type = _state.value.ticketType
 
-                if (name.isBlank() || picture == null || type.isBlank()) {
+                if (name.isBlank() || picture.isBlank() || type.isBlank()) {
                     return
                 }
 
@@ -120,7 +115,7 @@ class TicketViewModel(
                 _state.update {
                     it.copy(
                         Name = "",
-                        Picture = null,
+                        Picture = "",
                         ticketType = ""
                     )
                 }
@@ -146,11 +141,9 @@ class TicketViewModel(
 
             is TicketEvent.SetPicture -> {
                 viewModelScope.launch {
-                    val uri = event.Picture
-                    val context = event.context
                     _state.update {
                         it.copy(
-                            Picture = uriToByteArray(uri = uri, context)
+                            Picture = event.Picture
                         )
                     }
                 }
@@ -208,21 +201,6 @@ class TicketViewModel(
             }
         }
     }
-}
-
-
-fun uriToByteArray(
-    uri: Uri,
-    context: Context
-): ByteArray {
-    var bitmap: Bitmap? = null
-    val inputStream = context.contentResolver.openInputStream(uri)
-    inputStream?.use {
-        bitmap = BitmapFactory.decodeStream(it)
-    }
-    val stream = ByteArrayOutputStream()
-    bitmap?.compress(Bitmap.CompressFormat.PNG, 100, stream)
-    return stream.toByteArray()
 }
 
 //TODO: Make algorithm to generate seats

@@ -18,7 +18,7 @@ data class EventDetails(
 data class TicketDetails(
     val ticketType: String,
     val Name: String,
-    val Picture: ByteArray?,
+    val Picture: String,
     val Time: String,
     val Seat: String,
     @PrimaryKey(autoGenerate = true)

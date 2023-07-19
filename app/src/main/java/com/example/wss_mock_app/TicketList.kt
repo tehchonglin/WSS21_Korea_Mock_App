@@ -5,8 +5,9 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
@@ -78,6 +79,9 @@ import com.smarttoolfactory.screenshot.ScreenshotState
 import com.smarttoolfactory.screenshot.rememberScreenshotState
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import java.io.OutputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 @Composable
@@ -152,7 +156,8 @@ fun TicketsList(
 @Composable
 fun CreateTicketScreen(
     navController: NavController,
-    onEvent: (TicketEvent) -> Unit
+    onEvent: (TicketEvent) -> Unit,
+    applicationContext: Context
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var selectedTicketType by remember { mutableStateOf("") }
@@ -300,7 +305,7 @@ fun CreateTicketScreen(
                 } else {
                     onEvent(TicketEvent.SetName(userName.text))
                     onEvent(TicketEvent.SetTicketType(selectedTicketType))
-                    onEvent(TicketEvent.SetPicture(imageUri!!, context))
+                    onEvent(TicketEvent.SetPicture(saveTemporaryImage(imageUri!!, applicationContext)))
                     onEvent(TicketEvent.SaveTicket)
                     navController.navigate("ticketList")
                 }
@@ -360,15 +365,8 @@ fun LazyListScope.openingTickets(
                     )
 
                 }
-                val byteArray = opening_ticket.Picture?.let {
-                    BitmapFactory.decodeByteArray(
-                        opening_ticket.Picture,
-                        0,
-                        it.size
-                    )
-                }
                 AsyncImage(
-                    model = byteArray,
+                    model = Uri.parse(opening_ticket.Picture),
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -416,15 +414,8 @@ fun LazyListScope.closingTickets(
                     )
 
                 }
-                val byteArray = closing_ticket.Picture?.let {
-                    BitmapFactory.decodeByteArray(
-                        closing_ticket.Picture,
-                        0,
-                        it.size
-                    )
-                }
                 AsyncImage(
-                    model = byteArray,
+                    model = Uri.parse(closing_ticket.Picture),
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -486,15 +477,8 @@ fun TicketDetailsScreen(
                 shape = RectangleShape,
                 border = BorderStroke(1.dp, Color.Black)
             ) {
-                val byteArray = stateDetails.Picture?.let {
-                    BitmapFactory.decodeByteArray(
-                        stateDetails.Picture,
-                        0,
-                        it.size
-                    )
-                }
                 AsyncImage(
-                    model = byteArray,
+                    model = Uri.parse(stateDetails.Picture),
                     contentDescription = "Ticket Picture",
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -583,6 +567,24 @@ fun saveScreenshot(screenshotState: ScreenshotState, context: Context, fileName:
     Log.d("Saving Ticket", screenshotState.bitmap.toString())
 }
 
+private fun saveTemporaryImage(uri: Uri, applicationContext: Context): String {
+    val currentDateTime = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+    val fileName = "Image_${currentDateTime.format(formatter)}"
+    val resolver = applicationContext.contentResolver
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+    }
+    val imageUri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    val bitmap: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri))
+    val outputStream: OutputStream? = imageUri?.let { resolver.openOutputStream(it) }
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+    outputStream?.close()
+    return imageUri.toString()
+}
+
 private fun saveImage(bitmap: Bitmap, context: Context, fileName: String) {
     val values = ContentValues()
     values.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
@@ -619,22 +621,22 @@ private fun saveImage(bitmap: Bitmap, context: Context, fileName: String) {
 //}
 
 
-@Composable
-@FontScalePreview
-@Pixel2Preview
-@PixelCPreview
-fun TicketDetailsScreenPreview() {
-    val ticketDetails = TicketState(
-        ticketType = "opening",
-        Name = "Max",
-        Picture = null,
-        Time = generateDate(),
-        Seat = "A2 Seat 1"
-    )
-    TicketDetailsScreen(
-        onEvent = {},
-        stateDetails = ticketDetails,
-        1
-    )
-}
+//@Composable
+//@FontScalePreview
+//@Pixel2Preview
+//@PixelCPreview
+//fun TicketDetailsScreenPreview() {
+//    val ticketDetails = TicketState(
+//        ticketType = "opening",
+//        Name = "Max",
+//        Picture = null,
+//        Time = generateDate(),
+//        Seat = "A2 Seat 1"
+//    )
+//    TicketDetailsScreen(
+//        onEvent = {},
+//        stateDetails = ticketDetails,
+//        1
+//    )
+//}
 

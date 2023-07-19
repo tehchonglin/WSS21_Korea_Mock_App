@@ -179,7 +179,7 @@ fun Navigation(
             EventsScreen()
         }
         composable("Tickets") {
-            TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent)
+            TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent, applicationContext)
         }
         composable("Records") {
             RecordsScreen(applicationContext, audioState, onEvent)
@@ -403,7 +403,8 @@ fun TicketsScreen(
     stateOpening: TicketState,
     stateClosing: TicketState,
     stateDetails: TicketState,
-    onEvent: (TicketEvent) -> Unit
+    onEvent: (TicketEvent) -> Unit,
+    applicationContext: Context
 ) {
     Box(
         modifier = Modifier
@@ -435,7 +436,7 @@ fun TicketsScreen(
                 TicketDetailsScreen(onEvent, stateDetails, id as Int)
             }
             composable("createTicket") {
-                CreateTicketScreen(navController, onEvent)
+                CreateTicketScreen(navController, onEvent, applicationContext)
             }
         }
     }
