@@ -27,6 +27,7 @@ class TicketViewModel(
     private val dao: TicketDao
 ) : ViewModel() {
     private val _state = MutableStateFlow(TicketState())
+    private val _ticketState = MutableStateFlow(TicketState())
 
     // Sort state for tickets opening
     private val _sortTypeOpening = MutableStateFlow("opening")
@@ -66,11 +67,12 @@ class TicketViewModel(
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
-    val currentTicket = _state.map {
+    val currentTicket = _ticketState.map {
         it.copy()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
     private val _audioState = MutableStateFlow(AudioState())
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _audioDetails = _audioState.flatMapLatest {
         dao.getAudioFile()
@@ -158,16 +160,17 @@ class TicketViewModel(
 
             is TicketEvent.GetTicket -> {
                 viewModelScope.launch {
-                    val ticketDetails = withContext(Dispatchers.IO) {
-                        dao.getTicketDetails(event.ticketId)
-                    }
-                    withContext(Dispatchers.Main) {
-                        currentTicket.value.Name = ticketDetails.Name
-                        currentTicket.value.ticketType = ticketDetails.ticketType
-                        currentTicket.value.Seat = ticketDetails.Seat
-                        currentTicket.value.Time = ticketDetails.Time
-                        currentTicket.value.id = ticketDetails.id
-                        currentTicket.value.Picture = ticketDetails.Picture
+                    val ticket =
+                        withContext(Dispatchers.IO) { dao.getTicketDetails(event.ticketId) }
+                    _ticketState.update {
+                        it.copy(
+                            ticketType = ticket.ticketType,
+                            Name = ticket.Name,
+                            Picture = ticket.Picture,
+                            Time = ticket.Time,
+                            Seat = ticket.Seat,
+                            id = ticket.id
+                        )
                     }
                 }
             }
