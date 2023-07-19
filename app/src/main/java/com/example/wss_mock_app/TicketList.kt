@@ -14,6 +14,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,19 +40,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DismissDirection
+import androidx.compose.material3.DismissState
+import androidx.compose.material3.DismissValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,8 +86,10 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.smarttoolfactory.screenshot.ScreenshotBox
 import com.smarttoolfactory.screenshot.ScreenshotState
 import com.smarttoolfactory.screenshot.rememberScreenshotState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import java.io.File
 import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -305,7 +316,14 @@ fun CreateTicketScreen(
                 } else {
                     onEvent(TicketEvent.SetName(userName.text))
                     onEvent(TicketEvent.SetTicketType(selectedTicketType))
-                    onEvent(TicketEvent.SetPicture(saveTemporaryImage(imageUri!!, applicationContext)))
+                    onEvent(
+                        TicketEvent.SetPicture(
+                            saveTemporaryImage(
+                                imageUri!!,
+                                applicationContext
+                            )
+                        )
+                    )
                     onEvent(TicketEvent.SaveTicket)
                     navController.navigate("ticketList")
                 }
@@ -336,45 +354,76 @@ fun LazyListScope.openingTickets(
     ticketState: TicketState,
     onNavigateToTicketDetails: (String) -> Unit
 ) {
-    onEvent(TicketEvent.SortTickets("opening"))
-    items(ticketState.tickets) { opening_ticket ->
-        val id = opening_ticket.id
-        Card(
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
-            ),
-            modifier = Modifier.padding(8.dp),
-            onClick = ({
-                onNavigateToTicketDetails("$id")
-            })
+    onEvent(TicketEvent.SortTickets("closing"))
+    items(ticketState.tickets, key = { ticket -> ticket.id }) { opening_ticket ->
+        val context = LocalContext.current
+        var show by remember { mutableStateOf(true) }
+        val dismissState = rememberDismissState(
+            confirmValueChange = {
+                if (it == DismissValue.DismissedToStart) {
+                    show = false
+                    true
+                } else false
+            }, positionalThreshold = { 150.dp.toPx() }
+        )
+        AnimatedVisibility(
+            show, exit = fadeOut(spring())
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = opening_ticket.Name,
-                        fontSize = 20.sp
-                    )
-                    Text(
-                        text = opening_ticket.Time,
-                        fontSize = 12.sp
-                    )
+            SwipeToDismiss(
+                state = dismissState,
+                modifier = Modifier,
+                background = {
+                    DismissBackground(dismissState)
+                },
+                dismissContent = {
+                    val id = opening_ticket.id
+                    Card(
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 4.dp
+                        ),
+                        modifier = Modifier.padding(8.dp),
+                        onClick = ({
+                            onNavigateToTicketDetails("$id")
+                        })
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = opening_ticket.Name,
+                                    fontSize = 20.sp
+                                )
+                                Text(
+                                    text = opening_ticket.Time,
+                                    fontSize = 12.sp
+                                )
 
+                            }
+                            AsyncImage(
+                                model = Uri.parse(opening_ticket.Picture),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(10.dp)
+                                    .size(128.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
                 }
-                AsyncImage(
-                    model = Uri.parse(opening_ticket.Picture),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .padding(10.dp)
-                        .size(128.dp),
-                    contentScale = ContentScale.Crop
-                )
+            )
+        }
+        LaunchedEffect(show) {
+            if (!show) {
+                delay(800)
+                onEvent(TicketEvent.DeleteTickets(opening_ticket))
+                Toast.makeText(context, "Item removed", Toast.LENGTH_SHORT).show()
             }
+            dismissState.reset()
         }
     }
 }
@@ -386,44 +435,75 @@ fun LazyListScope.closingTickets(
     onNavigateToTicketDetails: (String) -> Unit
 ) {
     onEvent(TicketEvent.SortTickets("closing"))
-    items(ticketState.tickets) { closing_ticket ->
-        val id = closing_ticket.id
-        Card(
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
-            ),
-            modifier = Modifier.padding(8.dp),
-            onClick = ({
-                onNavigateToTicketDetails("$id")
-            })
+    items(ticketState.tickets, key = { ticket -> ticket.id }) { closing_ticket ->
+        val context = LocalContext.current
+        var show by remember { mutableStateOf(true) }
+        val dismissState = rememberDismissState(
+            confirmValueChange = {
+                if (it == DismissValue.DismissedToStart) {
+                    show = false
+                    true
+                } else false
+            }, positionalThreshold = { 150.dp.toPx() }
+        )
+        AnimatedVisibility(
+            show, exit = fadeOut(spring())
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = closing_ticket.Name,
-                        fontSize = 20.sp
-                    )
-                    Text(
-                        text = closing_ticket.Time,
-                        fontSize = 12.sp
-                    )
+            SwipeToDismiss(
+                state = dismissState,
+                modifier = Modifier,
+                background = {
+                    DismissBackground(dismissState)
+                },
+                dismissContent = {
+                    val id = closing_ticket.id
+                    Card(
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 4.dp
+                        ),
+                        modifier = Modifier.padding(8.dp),
+                        onClick = ({
+                            onNavigateToTicketDetails("$id")
+                        })
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = closing_ticket.Name,
+                                    fontSize = 20.sp
+                                )
+                                Text(
+                                    text = closing_ticket.Time,
+                                    fontSize = 12.sp
+                                )
 
+                            }
+                            AsyncImage(
+                                model = Uri.parse(closing_ticket.Picture),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .padding(10.dp)
+                                    .size(128.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
                 }
-                AsyncImage(
-                    model = Uri.parse(closing_ticket.Picture),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .padding(10.dp)
-                        .size(128.dp),
-                    contentScale = ContentScale.Crop
-                )
+            )
+        }
+        LaunchedEffect(show) {
+            if (!show) {
+                delay(800)
+                onEvent(TicketEvent.DeleteTickets(closing_ticket))
+                Toast.makeText(context, "Item removed", Toast.LENGTH_SHORT).show()
             }
+            dismissState.reset()
         }
     }
 }
@@ -447,7 +527,7 @@ fun TicketDetailsScreen(
     val seat = stateDetails.Seat
     val fileName = "$name-$seat-$time"
     val context = LocalContext.current
-    var imageBitmap by remember { mutableStateOf<Bitmap?>(null)}
+    var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -556,11 +636,37 @@ fun TicketDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DismissBackground(dismissState: DismissState) {
+    val color = when (dismissState.dismissDirection) {
+        DismissDirection.EndToStart -> Color(0xFFFF1744)
+        null -> Color.Transparent
+        else -> {
+            Color.Transparent
+        }
+    }
+    val direction = dismissState.dismissDirection
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color)
+            .padding(12.dp, 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End
+    ) {
+        if (direction == DismissDirection.EndToStart) Icon(
+            Icons.Default.Delete,
+            contentDescription = "delete"
+        )
+    }
+}
+
 @SuppressLint("LogConditional")
 fun saveScreenshot(screenshotState: ScreenshotState, context: Context, fileName: String) {
     screenshotState.bitmap?.let { saveImage(it, context, fileName) }
     var message = "Image not saved"
-    if (screenshotState.bitmap != null){
+    if (screenshotState.bitmap != null) {
         message = "Image saved"
     }
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -575,9 +681,10 @@ private fun saveTemporaryImage(uri: Uri, applicationContext: Context): String {
     val contentValues = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
         put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM + File.separator + "Worldskills")
     }
-    val imageUri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    val imageUri: Uri? =
+        resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
     val bitmap: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri))
     val outputStream: OutputStream? = imageUri?.let { resolver.openOutputStream(it) }
     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)

@@ -56,16 +56,13 @@ class TicketViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
-    private val _stateOpening = MutableStateFlow(TicketState())
-    private val _stateClosing = MutableStateFlow(TicketState())
-
     val stateOpening =
-        combine(_stateOpening, _sortTypeOpening, _ticketsOpeningSort) { state, sortType, tickets ->
+        combine(_state, _sortTypeOpening, _ticketsOpeningSort) { state, sortType, tickets ->
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
     val stateClosing =
-        combine(_stateClosing, _sortTypeClosing, _ticketsClosingSort) { state, sortType, tickets ->
+        combine(_state, _sortTypeClosing, _ticketsClosingSort) { state, sortType, tickets ->
             state.copy(tickets = tickets, ticketType = sortType)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TicketState())
 
