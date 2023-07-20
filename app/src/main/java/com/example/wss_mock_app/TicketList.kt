@@ -371,7 +371,7 @@ fun LazyListScope.openingTickets(
         ) {
             SwipeToDismiss(
                 state = dismissState,
-                modifier = Modifier,
+                modifier = Modifier.padding(8.dp),
                 background = {
                     DismissBackground(dismissState)
                 },
@@ -381,7 +381,7 @@ fun LazyListScope.openingTickets(
                         elevation = CardDefaults.cardElevation(
                             defaultElevation = 4.dp
                         ),
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier,
                         onClick = ({
                             onNavigateToTicketDetails("$id")
                         })
@@ -451,7 +451,7 @@ fun LazyListScope.closingTickets(
         ) {
             SwipeToDismiss(
                 state = dismissState,
-                modifier = Modifier,
+                modifier = Modifier.padding(8.dp),
                 background = {
                     DismissBackground(dismissState)
                 },
@@ -461,7 +461,7 @@ fun LazyListScope.closingTickets(
                         elevation = CardDefaults.cardElevation(
                             defaultElevation = 4.dp
                         ),
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier,
                         onClick = ({
                             onNavigateToTicketDetails("$id")
                         })
@@ -650,7 +650,7 @@ fun DismissBackground(dismissState: DismissState) {
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(color)
+            .background(color, RoundedCornerShape(12.dp))
             .padding(12.dp, 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End
@@ -731,12 +731,12 @@ private fun saveImage(bitmap: Bitmap, context: Context, fileName: String) {
 //@Composable
 //@FontScalePreview
 //@Pixel2Preview
-//@PixelCPreview
+////@PixelCPreview
 //fun TicketDetailsScreenPreview() {
 //    val ticketDetails = TicketState(
 //        ticketType = "opening",
 //        Name = "Max",
-//        Picture = null,
+//        Picture = "content://media/external/images/media/1000000054",
 //        Time = generateDate(),
 //        Seat = "A2 Seat 1"
 //    )
@@ -746,4 +746,5 @@ private fun saveImage(bitmap: Bitmap, context: Context, fileName: String) {
 //        1
 //    )
 //}
+
 
