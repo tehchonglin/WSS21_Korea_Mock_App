@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="Records"
+        android:enabled="true"
+        android:icon="@drawable/baseline_library_music_24"
+        android:shortcutShortLabel="@string/RecordsScreen">
+        <intent
+            android:action="records"
+            android:targetClass="com.example.wss_mock_app.MainActivity"
+            android:targetPackage="com.example.wss_mock_app" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="Tickets"
+        android:enabled="true"
+        android:icon="@drawable/baseline_event_seat_24"
+        android:shortcutShortLabel="@string/TicketsScreen">
+        <intent
+            android:action="tickets"
+            android:targetClass="com.example.wss_mock_app.MainActivity"
+            android:targetPackage="com.example.wss_mock_app" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="Events"
+        android:enabled="true"
+        android:icon="@drawable/baseline_event_24"
+        android:shortcutShortLabel="@string/EventsScreen">
+        <intent
+            android:action="events"
+            android:targetClass="com.example.wss_mock_app.MainActivity"
+            android:targetPackage="com.example.wss_mock_app" />
+    </shortcut>
+</shortcuts>

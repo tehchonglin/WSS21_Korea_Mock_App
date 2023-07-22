@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">WSS_Mock_App</string>
     <string name="title_activity_main">WorldSkills</string>
+    <string name="TicketsScreen">Tickets</string>
+    <string name="RecordsScreen">Records</string>
+    <string name="EventsScreen">Events</string>
 </resources>
