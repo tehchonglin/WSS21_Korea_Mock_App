@@ -61,8 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -85,8 +84,11 @@ import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.gson.Gson
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -108,6 +110,15 @@ class MainActivity : ComponentActivity() {
         }
     )
 
+    class EventViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(EventViewModel::class.java)) {
+                return EventViewModel(context) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,7 +129,8 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.READ_MEDIA_AUDIO,
                 Manifest.permission.READ_MEDIA_VIDEO,
                 Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.RECORD_AUDIO
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.INTERNET
             ),
             0
         )
@@ -129,6 +141,8 @@ class MainActivity : ComponentActivity() {
                 val stateDetails by viewModel.currentTicket.collectAsState()
                 val audioState by viewModel.audioState.collectAsState()
                 val navController = rememberNavController()
+                val factory = EventViewModelFactory(applicationContext)
+                val eventViewModel = ViewModelProvider(this, factory)[EventViewModel::class.java]
                 Scaffold(
                     bottomBar = {
                         BottomNavigationBar(items = listOf(
@@ -161,27 +175,22 @@ class MainActivity : ComponentActivity() {
                         stateDetails,
                         viewModel::onEvent,
                         applicationContext,
-                        audioState
+                        audioState,
+                        eventViewModel
                     )
                 }
                 val lifecycleOwner = LocalLifecycleOwner.current
                 LaunchedEffect(lifecycleOwner) {
-                    lifecycleOwner.lifecycle.addObserver(object : LifecycleObserver {
-                        @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-                        fun onResume() {
+                    val observer = LifecycleEventObserver { owner, event ->
+                        if (event == Lifecycle.Event.ON_RESUME && owner == lifecycleOwner) {
                             when (intent.action) {
-                                "events" -> {
-                                    navController.navigate("Events")
-                                }
-                                "tickets" -> {
-                                    navController.navigate("Tickets")
-                                }
-                                "records" -> {
-                                    navController.navigate("Records")
-                                }
+                                "events" -> navController.navigate("Events")
+                                "tickets" -> navController.navigate("Tickets")
+                                "records" -> navController.navigate("Records")
                             }
                         }
-                    })
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
                 }
             }
         }
@@ -196,11 +205,12 @@ fun Navigation(
     stateDetails: TicketState,
     onEvent: (TicketEvent) -> Unit,
     applicationContext: Context,
-    audioState: AudioState
+    audioState: AudioState,
+    eventViewModel: EventViewModel
 ) {
     NavHost(navController = navController, startDestination = "Events") {
         composable("Events") {
-            EventsScreen()
+            EventsScreen(applicationContext, eventViewModel)
         }
         composable("Tickets") {
             TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent, applicationContext)
@@ -268,139 +278,23 @@ fun BottomNavigationBar(
 }
 
 @Composable
-fun EventsScreen() {
+fun EventsScreen(
+    applicationContext: Context,
+    eventViewModel: EventViewModel
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(0.dp, 0.dp, 0.dp, 50.dp)
     ) {
-        val eventList = listOf(
-            EventDetails(
-                "1",
-                "Android Thumbnail",
-                "This is thumbnail of android.",
-                "This is the thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground)
-                )
-            ),
-            EventDetails(
-                "2",
-                "Arrow Thumbnail",
-                "This is arrow thumbnail of android.",
-                "This is the arrow thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent)
-                )
-            ),
-            EventDetails(
-                "1",
-                "Android Thumbnail",
-                "This is thumbnail of android.",
-                "This is the thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground)
-                )
-            ),
-            EventDetails(
-                "2",
-                "Arrow Thumbnail",
-                "This is arrow thumbnail of android.",
-                "This is the arrow thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent)
-                )
-            ),
-            EventDetails(
-                "1",
-                "Android Thumbnail",
-                "This is thumbnail of android.",
-                "This is the thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground)
-                )
-            ),
-            EventDetails(
-                "2",
-                "Arrow Thumbnail",
-                "This is arrow thumbnail of android.",
-                "This is the arrow thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent)
-                )
-            ),
-            EventDetails(
-                "1",
-                "Android Thumbnail",
-                "This is thumbnail of android.",
-                "This is the thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.ic_launcher_foreground),
-                listOf(
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground),
-                    painterResource(id = R.drawable.ic_launcher_foreground)
-                )
-            ),
-            EventDetails(
-                "2",
-                "Arrow Thumbnail",
-                "This is arrow thumbnail of android.",
-                "This is the arrow thumbnail of android, which looks very nice," +
-                        "I really like this thumbnail, and here are 5 reasons why you should too, 1. waewa" +
-                        "2. wadwadwa, 3. eqweqwe, 4. ewqeqwe, 5. ytryrtyrt",
-                true,
-                painterResource(id = R.drawable.arrow_right_transparent),
-                listOf(
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent),
-                    painterResource(id = R.drawable.arrow_right_transparent)
-                )
-            ),
-        )
+        val jsonString = loadJSONFromAsset(applicationContext, "sample.json")
+        val gson = Gson()
+        val eventList = gson.fromJson(jsonString, EventDetails::class.java)
         val navController = rememberNavController()
         NavHost(navController, startDestination = EventsScreen.EventsList.route) {
             composable(EventsScreen.EventsList.route) {
-                EventsList(navController, eventList)
+                EventsList(navController, eventList, eventViewModel)
             }
             composable(
                 EventsScreen.Details.route,
@@ -409,16 +303,28 @@ fun EventsScreen() {
                 val eventId = backStackEntry.arguments?.getString("eventId")
                 val event = findEventById(
                     eventId,
-                    eventList
+                    eventList.EventDetails
                 ) // Implement this function to find the event by ID
                 if (event != null) {
-                    DetailsScreen(event)
+                    DetailsScreen(event, eventViewModel)
                 } else {
                     // Handle the case when the event is not found
                 }
             }
         }
     }
+}
+
+fun loadJSONFromAsset(context: Context, filename: String): String? {
+    var json = ""
+    try {
+        val inputStream: InputStream = context.assets.open(filename)
+        json = inputStream.bufferedReader().use { it.readText() }
+    } catch (ex: IOException) {
+        ex.printStackTrace()
+        return null
+    }
+    return json
 }
 
 

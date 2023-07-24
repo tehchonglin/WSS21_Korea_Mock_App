@@ -1,18 +1,27 @@
 package com.example.wss_mock_app.data
 
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-data class EventDetails(
-    val id: String,
-    val Name: String,
-    val Description: String,
-    val DetailedDescription: String,
-    val Status: Boolean,
-    val Thumbnail: Painter,
-    val Pictures: List<Painter>
+data class Picture(
+    val url: String,
+    val description: String
 )
+
+data class Event(
+    val id: String,
+    val name: String,
+    val description: String,
+    val detailedDescription: String,
+    val status: Boolean,
+    val thumbnail: String,
+    val pictures: List<Picture>
+)
+
+data class EventDetails(
+    val EventDetails: List<Event>
+)
+
 
 @Entity (tableName = "ticket_details")
 data class TicketDetails(
