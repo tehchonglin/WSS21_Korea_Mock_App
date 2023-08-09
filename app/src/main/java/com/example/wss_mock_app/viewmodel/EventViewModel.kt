@@ -1,4 +1,4 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel

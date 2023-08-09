@@ -1,14 +1,14 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.viewmodel
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wss_mock_app.data.Audio
 import com.example.wss_mock_app.data.AudioState
-import com.example.wss_mock_app.data.TicketDao
 import com.example.wss_mock_app.data.TicketDetails
 import com.example.wss_mock_app.data.TicketEvent
 import com.example.wss_mock_app.data.TicketState
+import com.example.wss_mock_app.room.TicketDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

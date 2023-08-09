@@ -1,4 +1,6 @@
-package com.example.wss_mock_app
+@file:Suppress("PreviewAnnotationInFunctionWithParameters")
+
+package com.example.wss_mock_app.presentation
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -74,6 +76,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
@@ -94,6 +98,7 @@ import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@Preview(name = "Pixel 4", group = "Devices", device = Devices.PIXEL_4_XL, showSystemUi = false, showBackground = true )
 
 @Composable
 fun TicketsList(
@@ -638,7 +643,7 @@ fun TicketDetailsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DismissBackground(dismissState: DismissState) {
+private fun DismissBackground(dismissState: DismissState) {
     val color = when (dismissState.dismissDirection) {
         DismissDirection.EndToStart -> Color(0xFFFF1744)
         null -> Color.Transparent

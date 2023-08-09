@@ -1,4 +1,4 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.presentation
 
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -31,7 +31,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.wss_mock_app.data.Event
 import com.example.wss_mock_app.data.EventDetails
-import com.example.wss_mock_app.data.Picture
+import com.example.wss_mock_app.media.Picture
+import com.example.wss_mock_app.viewmodel.EventViewModel
 
 @Composable
 fun EventsList(

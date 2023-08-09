@@ -1,4 +1,4 @@
-package com.example.wss_mock_app.audio
+package com.example.wss_mock_app.media
 
 import java.io.File
 

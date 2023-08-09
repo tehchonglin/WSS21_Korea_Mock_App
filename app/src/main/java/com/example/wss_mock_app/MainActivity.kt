@@ -1,96 +1,41 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+//@file:Suppress("PreviewAnnotationInFunctionWithParameters")
 
 package com.example.wss_mock_app
 
+
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import androidx.room.Room
-import com.example.wss_mock_app.audio.AndroidAudioPlayer
-import com.example.wss_mock_app.audio.AndroidAudioRecorder
-import com.example.wss_mock_app.data.AudioState
-import com.example.wss_mock_app.data.EventDetails
-import com.example.wss_mock_app.data.TicketDatabase
-import com.example.wss_mock_app.data.TicketEvent
-import com.example.wss_mock_app.data.TicketState
+import com.example.wss_mock_app.data.BottomNavItem
+import com.example.wss_mock_app.presentation.BottomNavigationBar
+import com.example.wss_mock_app.presentation.Navigation
+import com.example.wss_mock_app.room.TicketDatabase
 import com.example.wss_mock_app.ui.theme.WSS_Mock_AppTheme
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.gson.Gson
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.InputStream
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import com.example.wss_mock_app.viewmodel.EventViewModel
+import com.example.wss_mock_app.viewmodel.TicketViewModel
 
 class MainActivity : ComponentActivity() {
     private val db by lazy {
@@ -197,393 +142,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Navigation(
-    navController: NavHostController,
-    stateOpening: TicketState,
-    stateClosing: TicketState,
-    stateDetails: TicketState,
-    onEvent: (TicketEvent) -> Unit,
-    applicationContext: Context,
-    audioState: AudioState,
-    eventViewModel: EventViewModel
-) {
-    NavHost(navController = navController, startDestination = "Events") {
-        composable("Events") {
-            EventsScreen(applicationContext, eventViewModel)
-        }
-        composable("Tickets") {
-            TicketsScreen(stateOpening, stateClosing, stateDetails, onEvent, applicationContext)
-        }
-        composable("Records") {
-            RecordsScreen(applicationContext, audioState, onEvent)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun BottomNavigationBar(
-    items: List<BottomNavItem>,
-    navController: NavController,
-    modifier: Modifier = Modifier,
-    onItemClick: (BottomNavItem) -> Unit
-) {
-    val backStackEntry = navController.currentBackStackEntryAsState()
-    NavigationBar(
-        modifier = modifier,
-        containerColor = Color.LightGray,
-        tonalElevation = 5.dp
-    ) {
-        items.forEach { item ->
-            val selected = item.route == backStackEntry.value?.destination?.route
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onItemClick(item) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.Black,
-                    unselectedIconColor = Color.White
-                ),
-                icon = {
-                    Column(horizontalAlignment = CenterHorizontally) {
-                        if (item.badgeCount > 0) {
-                            BadgedBox(
-                                badge = {
-                                    Badge {
-                                        Text(text = item.badgeCount.toString())
-                                    }
-                                }) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.name
-                                )
-                            }
-                        } else {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.name
-                            )
-                        }
-                        if (selected) {
-                            Text(
-                                text = item.name,
-                                textAlign = TextAlign.Center,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                })
-        }
-    }
-}
-
-@Composable
-fun EventsScreen(
-    applicationContext: Context,
-    eventViewModel: EventViewModel
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(0.dp, 0.dp, 0.dp, 50.dp)
-    ) {
-        val jsonString = loadJSONFromAsset(applicationContext, "sample.json")
-        val gson = Gson()
-        val eventList = gson.fromJson(jsonString, EventDetails::class.java)
-        val navController = rememberNavController()
-        NavHost(navController, startDestination = EventsScreen.EventsList.route) {
-            composable(EventsScreen.EventsList.route) {
-                EventsList(navController, eventList, eventViewModel)
-            }
-            composable(
-                EventsScreen.Details.route,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId")
-                val event = findEventById(
-                    eventId,
-                    eventList.EventDetails
-                ) // Implement this function to find the event by ID
-                if (event != null) {
-                    DetailsScreen(event, eventViewModel)
-                } else {
-                    // Handle the case when the event is not found
-                }
-            }
-        }
-    }
-}
-
-fun loadJSONFromAsset(context: Context, filename: String): String? {
-    var json = ""
-    try {
-        val inputStream: InputStream = context.assets.open(filename)
-        json = inputStream.bufferedReader().use { it.readText() }
-    } catch (ex: IOException) {
-        ex.printStackTrace()
-        return null
-    }
-    return json
-}
 
 
-@Composable
-fun TicketsScreen(
-    stateOpening: TicketState,
-    stateClosing: TicketState,
-    stateDetails: TicketState,
-    onEvent: (TicketEvent) -> Unit,
-    applicationContext: Context
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(0.dp, 0.dp, 0.dp, 80.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = "ticketList") {
-            composable("ticketList") {
-                TicketsList(
-                    navController = navController,
-                    onEvent = onEvent,
-                    stateOpening,
-                    stateClosing,
-                    onNavigateToTicketDetails = {
-                        navController.navigate("ticketDetails/$it")
-                    }
-                )
-            }
-            composable(
-                route = "ticketDetails/{ticket_id}",
-                arguments = listOf(
-                    navArgument("ticket_id") {
-                        type = NavType.IntType
-                    }
-                )) {
-                val id = it.arguments?.getInt("ticket_id") ?: ""
-                TicketDetailsScreen(onEvent, stateDetails, id as Int)
-            }
-            composable("createTicket") {
-                CreateTicketScreen(navController, onEvent, applicationContext)
-            }
-        }
-    }
-}
 
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun RecordsScreen(
-    applicationContext: Context,
-    audioState: AudioState,
-    onEvent: (TicketEvent) -> Unit
-) {
-    var recordingState by remember { mutableStateOf("stopped") }
-    var playingState by remember { mutableStateOf("stopped") }
-    var filePath by remember { mutableStateOf("") }
-    val recorder by lazy {
-        AndroidAudioRecorder(applicationContext)
-    }
-    val player by lazy {
-        AndroidAudioPlayer(applicationContext) {
-            playingState = "stopped"
-        }
-    }
-    var audioFile: File? = null
-    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Text(
-                text = "Records",
-                fontSize = 35.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(0.dp, 40.dp, 0.dp, 30.dp),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.SemiBold
-            )
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp, 10.dp),
-                shape = RectangleShape
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(10.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (permissionState.status.isGranted) {
-                                    recordingState = if (recordingState == "stopped") {
-                                        File(applicationContext.cacheDir, "audio.mp3").also {
-                                            recorder.start(it)
-                                            audioFile = it
-                                        }
-                                        "recording"
-                                    } else {
-                                        recorder.stop()
-                                        Log.d("Audio Status", audioFile.toString())
-                                        "stopped"
-                                    }
-                                } else {
-                                    permissionState.launchPermissionRequest()
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth(0.7f),
-                            shape = RectangleShape
-                        ) {
-                            val text =
-                                if (recordingState == "stopped") "Voice Recording" else "Stop Recording"
-                            Text(text = text)
-                        }
-                        Button(
-                            onClick = {
-                                if (playingState == "stopped") {
-                                    player.playFile(audioFile ?: return@Button)
-                                    playingState = "playing"
-                                } else {
-                                    player.stop()
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth(0.7f),
-                            shape = RectangleShape
-                        ) {
-                            val text =
-                                if (playingState == "stopped") "Voice Play" else "Stop playing"
-                            Text(text = text)
-                        }
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) {
-                        Spacer(modifier = Modifier.size(0.dp, 100.dp))
-                        Button(
-                            onClick = {
-                                audioFile?.let {
-                                    filePath = saveTemporaryFile(it, applicationContext)
-                                }
-                                onEvent(TicketEvent.SetFile(filePath))
-                                onEvent(TicketEvent.SaveAudio)
-                            },
-                            shape = RectangleShape
-                        ) {
-                            Text(
-                                text = "Submit",
-                                textAlign = TextAlign.End,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(0.dp, 0.dp, 10.dp, 0.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp, 30.dp),
-                shape = RectangleShape
-            ) {
-                Text(
-                    text = "Audios List",
-                    modifier = Modifier.padding(10.dp),
-                    fontSize = 20.sp
-                )
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = CenterHorizontally
-                ) {
-                    items(audioState.audioDetails) { state ->
-                        Card(modifier = Modifier.padding(5.dp, 10.dp)) {
-                            var buttonIcon by remember { mutableStateOf(R.drawable.baseline_play_arrow_24) }
-                            var individualPlayingState by remember { mutableStateOf("stopped") }
-                            val individualPlayer by lazy {
-                                AndroidAudioPlayer(applicationContext) {
-                                    individualPlayingState = "stopped"
-                                }
-                            }
-                            Row {
-                                Text(
-                                    text = "Audio ${state.id}",
-                                    fontSize = 15.sp,
-                                    modifier = Modifier.padding(0.dp, 0.dp, 10.dp, 0.dp)
-                                )
-                                Button(onClick = {
-                                    if (individualPlayingState == "stopped") {
-                                        val uri = Uri.parse(state.audio)
-                                        val file = uriToFile(uri, applicationContext)
-                                        individualPlayer.playFile(file)
-                                        individualPlayingState = "playing"
-                                    } else {
-                                        individualPlayer.stop()
-                                    }
-                                }) {
-                                    buttonIcon =
-                                        if (individualPlayingState == "stopped") R.drawable.baseline_play_arrow_24 else R.drawable.baseline_pause_24
-                                    Icon(
-                                        painterResource(id = buttonIcon),
-                                        contentDescription = null
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun saveTemporaryFile(file: File, applicationContext: Context): String {
-    val currentDateTime = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
-    val fileName = "File_${currentDateTime.format(formatter)}"
-    val byteArray = file.readBytes()
-    val resolver = applicationContext.contentResolver
-    val contentValues = ContentValues().apply {
-        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
-        put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC)
-    }
-    val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
-    resolver.openOutputStream(uri!!)?.use { it.write(byteArray) }
-    return uri.toString()
-}
-
-fun uriToFile(uri: Uri, context: Context): File {
-    val destinationFile = File(context.cacheDir, "tempFile")
-    val inputStream = context.contentResolver.openInputStream(uri)
-    inputStream?.use { input ->
-        FileOutputStream(destinationFile).use { output ->
-            input.copyTo(output)
-        }
-    }
-    return destinationFile
-}
 
 
-@Composable
-@Pixel2Preview
-//@PixelCPreview
-@FontScalePreview
-fun RecordScreenPreview() {
-    val audioState = AudioState()
-    audioState.id = 5
-    RecordsScreen(LocalContext.current, audioState, {})
-}
+
+
+

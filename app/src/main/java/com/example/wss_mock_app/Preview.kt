@@ -18,3 +18,4 @@ annotation class Pixel2Preview
 
 @Preview(name = "Pixel C", group = "Devices", device = Devices.PIXEL_2, showSystemUi = false, showBackground = true )
 annotation class PixelCPreview
+

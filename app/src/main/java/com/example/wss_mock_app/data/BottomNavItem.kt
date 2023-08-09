@@ -1,4 +1,4 @@
-package com.example.wss_mock_app
+package com.example.wss_mock_app.data
 
 import androidx.compose.ui.graphics.vector.ImageVector
 

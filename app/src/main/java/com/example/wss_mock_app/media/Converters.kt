@@ -1,4 +1,4 @@
-package com.example.wss_mock_app.data
+package com.example.wss_mock_app.media
 
 import android.net.Uri
 import androidx.room.TypeConverter
